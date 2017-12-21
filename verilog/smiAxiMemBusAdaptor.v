@@ -54,12 +54,8 @@ parameter DataIndexSize = 4;
 // time.
 parameter AxiIdWidth = 4;
 
-// Specifies the internal FIFO depths (more than 3 entries).
+// Specifies the internal FIFO depths (between 3 and 128 entries).
 parameter FifoSize = 16;
-
-// Specifies the internal FIFO index size, which should be capable of holding
-// the binary representation of FifoSize-1.
-parameter FifoIndexSize = 4;
 
 // Derives the flit width of the data input and output ports. Minimum 16 bytes.
 parameter FlitWidth = (1 << DataIndexSize);
@@ -157,14 +153,14 @@ smiFrameArbiterX2 #(FlitWidth) responseArbiter
   smiRespData, smiRespStop, clk, srst);
 
 // Instantiate the AXI read adaptor.
-smiAxiMemReadAdaptor #(DataIndexSize, AxiIdWidth, FifoSize, FifoIndexSize) readAdaptor
+smiAxiMemReadAdaptor #(DataIndexSize, AxiIdWidth, FifoSize) readAdaptor
   (readReqReady, readReqEofc, readReqData, readReqStop, readRespReady,
   readRespEofc, readRespData, readRespStop, axiARValid, axiARReady, axiARId,
   axiARAddr, axiARLen, axiARSize, axiARCache, axiRValid, axiRReady, axiRId,
   axiRData, axiRResp, axiRLast, axiReset, clk, srst);
 
 // Instantiate the AXI write adaptor.
-smiAxiMemWriteAdaptor #(DataIndexSize, AxiIdWidth, FifoSize, FifoIndexSize) writeAdaptor
+smiAxiMemWriteAdaptor #(DataIndexSize, AxiIdWidth, FifoSize) writeAdaptor
   (writeReqReady, writeReqEofc, writeReqData, writeReqStop, writeRespReady,
   writeRespEofc, writeRespData, writeRespStop, axiAWValid, axiAWReady, axiAWId,
   axiAWAddr, axiAWLen, axiAWSize, axiAWCache, axiWValid, axiWReady, axiWData,

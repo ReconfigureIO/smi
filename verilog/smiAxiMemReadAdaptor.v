@@ -50,12 +50,8 @@ parameter DataIndexSize = 4;
 // time.
 parameter AxiIdWidth = 4;
 
-// Specifies the internal FIFO depths (more than 3 entries).
+// Specifies the internal FIFO depths (between 3 and 128 entries).
 parameter FifoSize = 16;
-
-// Specifies the internal FIFO index size, which should be capable of holding
-// the binary representation of FifoSize-1.
-parameter FifoIndexSize = 4;
 
 // Derives the width of the data input and output ports. Minimum of 128 bits.
 parameter DataWidth = (1 << DataIndexSize) * 8;
@@ -506,7 +502,7 @@ smiFlitDataPack #(DataWidth/8) flitDataPack
   dataFrameEofc, dataFrameData, dataFrameStop, clk, srst);
 
 // Implement read frame header injection.
-smiHeaderInjectPf1 #(DataWidth/8, 4, FifoSize, FifoIndexSize) headerInjection
+smiHeaderInjectPf1 #(DataWidth/8, 4, FifoSize) headerInjection
   (headerValid, headerData, headerStop, dataFrameReady, dataFrameEofc,
   dataFrameData, dataFrameStop, smiRespReady, smiRespEofc, smiRespData,
   smiRespStop, clk, srst);

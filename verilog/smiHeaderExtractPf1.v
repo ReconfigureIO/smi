@@ -34,12 +34,14 @@ parameter FlitWidth = 16;
 // be less than the flit data width.
 parameter HeadWidth = 4;
 
-// Specifies the internal FIFO depths (more than 3 entries).
+// Specifies the internal FIFO depths (between 3 and 128 entries).
 parameter FifoSize = 16;
 
 // Specifies the internal FIFO index size, which should be capable of holding
 // the binary representation of FifoSize-2.
-parameter FifoIndexSize = 4;
+parameter FifoIndexSize = (FifoSize <= 2) ? -1 : (FifoSize <= 3) ? 1 :
+  (FifoSize <= 5) ? 2 : (FifoSize <= 9) ? 3 : (FifoSize <= 17) ? 4 :
+  (FifoSize <= 33) ? 5 : (FifoSize <= 65) ? 6 : (FifoSize <= 129) ? 7 : -1;
 
 // Derives the output flit split point from the flit and head widths.
 parameter FlitSplit = FlitWidth - HeadWidth;
