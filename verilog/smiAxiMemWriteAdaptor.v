@@ -42,8 +42,9 @@ module smiAxiMemWriteAdaptor
   axiWLast, axiBValid, axiBReady, axiBId, axiBResp, axiReset, clk, srst);
 
 // Specifies the number of bits required to address individual bytes within the
-// AXI data signal. This also determines the width of the data signal.
-parameter DataIndexSize = 4;
+// AXI data signal. This also determines the width of the data signal. Valid
+// range is from 3 to 6 for data widths of 64 to 512 inclusive.
+parameter DataIndexSize = 3;
 
 // Specifies the width of the AXI ID signal. This also determines the number
 // of transactions which may be 'in flight' through the adaptor at any given
@@ -53,7 +54,7 @@ parameter AxiIdWidth = 4;
 // Specifies the internal FIFO depths (between 3 and 128 entries).
 parameter FifoSize = 16;
 
-// Derives the width of the data input and output ports. Minimum of 128 bits.
+// Derives the width of the data input and output ports. Minimum of 64 bits.
 parameter DataWidth = (1 << DataIndexSize) * 8;
 
 // Derives the maximum number of 'in flight' write transactions.
@@ -481,10 +482,22 @@ assign smiRespData =
   { smiRespZeros, smiRespTag_q, 6'd0, smiRespStatus_q, `WRITE_RESP_ID_BYTE };
 
 // Extract the header from the SMI write input.
-smiHeaderExtractPf1 #(DataWidth/8, 14, FifoSize) headerExtraction
-  (smiReqReady, smiReqEofc, smiReqData, smiReqStop, headerReady, headerData,
-  headerStop, dataFrameReady, dataFrameEofc, dataFrameData, dataFrameStop,
-  clk, srst);
+generate
+  if (DataWidth >= 128)
+  begin
+    smiHeaderExtractPf1 #(DataWidth/8, 14, FifoSize) headerExtraction
+      (smiReqReady, smiReqEofc, smiReqData, smiReqStop, headerReady, headerData,
+      headerStop, dataFrameReady, dataFrameEofc, dataFrameData, dataFrameStop,
+      clk, srst);
+  end
+  else
+  begin
+    smiHeaderExtractPf2 #(DataWidth/8, 14, FifoSize) headerExtraction
+      (smiReqReady, smiReqEofc, smiReqData, smiReqStop, headerReady, headerData,
+      headerStop, dataFrameReady, dataFrameEofc, dataFrameData, dataFrameStop,
+      clk, srst);
+  end
+endgenerate
 
 // Perform byte lane alignment on the data frame.
 smiByteDataAlign #(DataWidth/8) byteAlignment

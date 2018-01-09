@@ -42,8 +42,9 @@ module smiAxiMemReadAdaptor
   axiRResp, axiRLast, axiReset, clk, srst);
 
 // Specifies the number of bits required to address individual bytes within the
-// AXI data signal. This also determines the width of the data signal.
-parameter DataIndexSize = 4;
+// AXI data signal. This also determines the width of the data signal. Valid
+// range is from 3 to 6 for data widths of 64 to 512 inclusive.
+parameter DataIndexSize = 3;
 
 // Specifies the width of the AXI ID signal. This also determines the number
 // of transactions which may be 'in flight' through the adaptor at any given
@@ -53,7 +54,7 @@ parameter AxiIdWidth = 4;
 // Specifies the internal FIFO depths (between 3 and 128 entries).
 parameter FifoSize = 16;
 
-// Derives the width of the data input and output ports. Minimum of 128 bits.
+// Derives the width of the data input and output ports. Minimum of 64 bits.
 parameter DataWidth = (1 << DataIndexSize) * 8;
 
 // Derives the maximum number of 'in flight' read transactions.
@@ -107,10 +108,10 @@ input [1:0]            axiRResp;
 input                  axiRLast;
 
 // Specifies the SMI request and AXI read data response input registers.
-reg                 smiReqReady_q;
-reg [7:0]           smiReqEofc_q;
-reg [DataWidth-1:0] smiReqData_q;
-reg                 smiReqHalt;
+wire         smiReqBufReady;
+wire [7:0]   smiReqBufEofc;
+wire [127:0] smiReqBufData;
+reg          smiReqBufStop;
 
 wire                  axiRBufValid;
 wire [AxiIdWidth-1:0] axiRBufId;
@@ -193,28 +194,22 @@ wire        headerStop;
 // Miscellaneous signals.
 integer i;
 
-// Implement resettable SMI request registers.
-always @(posedge clk)
-begin
-  if (srst)
+// Implement SMI request buffering.
+generate
+  if (DataWidth >= 128)
   begin
-    smiReqReady_q <= 1'b0;
+    smiSelfLinkToggleBuffer #(136) smiReqBuffer
+      (smiReqReady, { smiReqEofc, smiReqData [127:0] }, smiReqStop,
+      smiReqBufReady, { smiReqBufEofc, smiReqBufData }, smiReqBufStop,
+      clk, srst);
   end
-  else if (~(smiReqReady_q & smiReqHalt))
-    smiReqReady_q <= smiReqReady;
-end
-
-// Implement non-resettable SMI request registers.
-always @(posedge clk)
-begin
-  if (~(smiReqReady_q & smiReqHalt))
+  else
   begin
-    smiReqEofc_q <= smiReqEofc;
-    smiReqData_q <= smiReqData;
+    smiFlitScaleX2 #(DataWidth/8) smiReqScaler
+      (smiReqReady, smiReqEofc, smiReqData, smiReqStop, smiReqBufReady,
+      smiReqBufEofc, smiReqBufData, smiReqBufStop, clk, srst);
   end
-end
-
-assign smiReqStop = smiReqReady_q & smiReqHalt;
+endgenerate
 
 // Instantiate AXI read data input buffer.
 smiAxiInputBuffer #(DataWidth+AxiIdWidth+3) axiReadBuffer
@@ -289,9 +284,9 @@ always @(posedge clk)
 begin
   if (pCacheWrite)
   begin
-    pCacheSmiTags [readIdFifoOutput] <= smiReqData_q [31:16];
-    pCacheAddrOffsets [readIdFifoOutput] <= smiReqData_q [39:32];
-    pCacheDataLengths [readIdFifoOutput] <= smiReqData_q [103:96];
+    pCacheSmiTags [readIdFifoOutput] <= smiReqBufData [31:16];
+    pCacheAddrOffsets [readIdFifoOutput] <= smiReqBufData [39:32];
+    pCacheDataLengths [readIdFifoOutput] <= smiReqBufData [103:96];
   end
   if (pCacheRead)
   begin
@@ -302,15 +297,15 @@ begin
 end
 
 // Combinatorial logic for read request dispatch state machine.
-always @(dispatchState_q, smiReqReady_q, smiReqData_q, smiReqEofc_q,
-  readIdFifoEmpty_q, axiARBufStop)
+always @(dispatchState_q, smiReqBufReady, smiReqBufEofc, readIdFifoEmpty_q,
+  axiARBufStop)
 begin
 
   // Hold current state by default.
   dispatchState_d = dispatchState_q;
   readIdFifoPop = 1'b0;
   axiARBufValid = 1'b0;
-  smiReqHalt = 1'b1;
+  smiReqBufStop = 1'b1;
   pCacheWrite = 1'b0;
 
   // Implement state machine.
@@ -328,15 +323,15 @@ begin
     // Drain the SMI request input frame.
     RequestDrain :
     begin
-      smiReqHalt = 1'b0;
-      if (smiReqEofc_q != 8'd0)
+      smiReqBufStop = 1'b0;
+      if (smiReqBufEofc != 8'd0)
         dispatchState_d = RequestIdle;
     end
 
     // From the idle state, wait for a valid read request.
     default :
     begin
-      if (smiReqReady_q & ~readIdFifoEmpty_q)
+      if (smiReqBufReady & ~readIdFifoEmpty_q)
       begin
         dispatchState_d = RequestDispatch;
         readIdFifoPop = 1'b1;
@@ -358,8 +353,8 @@ end
 // To calculate the AXI burst length we need to take into account the number
 // of bytes in the burst and the address offset within the first word. This
 // yields a 16-bit value which we slice down to 8 bits later.
-assign axiARLenBuf = (smiReqData_q [111:96] - 16'd1 +
-  (smiReqData_q [47:32] & ((16'd1 << DataIndexSize) - 16'd1))) >> DataIndexSize;
+assign axiARLenBuf = (smiReqBufData [111:96] - 16'd1 +
+  (smiReqBufData [47:32] & ((16'd1 << DataIndexSize) - 16'd1))) >> DataIndexSize;
 
 // Buffer the AXI read address output using a toggle buffer.
 always @(posedge clk)
@@ -381,9 +376,9 @@ begin
   begin
     axiARValid_q <= 1'b1;
     axiARLen_q <= axiARLenBuf[7:0];
-    axiARAddr_q <= smiReqData_q [95:32];
+    axiARAddr_q <= smiReqBufData [95:32];
     axiARId_q <= readIdFifoOutput;
-    axiARCacheBuf_q <= ~smiReqData_q [8];
+    axiARCacheBuf_q <= ~smiReqBufData [8];
   end
 end
 

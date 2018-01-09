@@ -45,9 +45,9 @@ module smiAxiMemBusAdaptor
   axiBValid, axiBReady, axiBId, axiBResp, axiReset, clk, srst);
 
 // Specifies the number of bits required to address individual bytes within the
-// AXI data signal. This also determines the width of the data signal. Minimum
-// value of 4 for a 16 byte / 128 bit AXI data bus.
-parameter DataIndexSize = 4;
+// AXI data signal. This also determines the width of the data signal. Valid
+// range is from 3 to 6 for data widths of 64 to 512 inclusive.
+parameter DataIndexSize = 3;
 
 // Specifies the width of the AXI ID signal. This also determines the number
 // of transactions which may be 'in flight' through the adaptor at any given
@@ -57,7 +57,7 @@ parameter AxiIdWidth = 4;
 // Specifies the internal FIFO depths (between 3 and 128 entries).
 parameter FifoSize = 16;
 
-// Derives the flit width of the data input and output ports. Minimum 16 bytes.
+// Derives the flit width of the data input and output ports. Minimum 8 bytes.
 parameter FlitWidth = (1 << DataIndexSize);
 
 // Derives the maximum number of 'in flight' read transactions.
