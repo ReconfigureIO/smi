@@ -187,12 +187,12 @@ begin
         readState_d = ReadSetParams;
         if (initBurstLenA_q < initBurstLenB_q)
         begin
-          burstLenCount_d = burstLenCount_q - initBurstLenA_q;
+          burstLenCount_d = burstLenCount_q - { 19'd0, initBurstLenA_q };
           nextBurstLen_d = initBurstLenA_q;
         end
         else
         begin
-          burstLenCount_d = burstLenCount_q - initBurstLenB_q;
+          burstLenCount_d = burstLenCount_q - { 19'd0, initBurstLenB_q };
           nextBurstLen_d = initBurstLenB_q;
         end
       end
@@ -224,7 +224,7 @@ begin
       if (~respCtrlFifoInStop)
       begin
         readState_d = ReadSetParams;
-        burstWordAddr_d = burstWordAddr_q + nextBurstLen_q;
+        burstWordAddr_d = burstWordAddr_q + { 48'd0, nextBurstLen_q };
         if (burstLenCount_q >= SegmentSize [31:0])
         begin
           burstLenCount_d = burstLenCount_q - SegmentSize [31:0];
