@@ -82,7 +82,6 @@ parameter [1:0]
 // Respone state machine signals.
 reg [1:0] receiveState_d;
 reg       doneStatusOk_d;
-reg       doneReady;
 reg       smiRespHalt;
 
 reg [1:0] receiveState_q;
@@ -107,7 +106,6 @@ begin
   // Hold current state by default.
   receiveState_d = receiveState_q;
   doneStatusOk_d = doneStatusOk_q;
-  doneReady = 1'b0;
   smiRespHalt = 1'b1;
 
   // Implement state machine.
@@ -116,7 +114,6 @@ begin
     // Forward the status response.
     ReceiveStatus :
     begin
-      doneReady = 1'b1;
       if (~doneStop)
         receiveState_d = ReceiveDrain;
     end
@@ -158,7 +155,7 @@ begin
   end
 end
 
-assign doneValid = doneReady;
+assign doneValid = (receiveState_q == ReceiveStatus) ? 1'b1 : 1'b0;
 assign doneStatusOk = doneStatusOk_q;
 assign smiRespStop = smiRespHalt;
 
