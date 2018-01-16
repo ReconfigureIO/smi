@@ -91,7 +91,6 @@ reg [63:0] dataCounterVal_q;
 reg [63:0] dataCounterIncr_q;
 reg [31:0] readDataCounter_q;
 
-reg testParamsHalt;
 reg readParamsReady;
 reg readDataHalt;
 
@@ -113,7 +112,6 @@ begin
   dataCounterIncr_d = dataCounterIncr_q;
   readDataCounter_d = readDataCounter_q;
 
-  testParamsHalt = 1'b1;
   readParamsReady = 1'b0;
   readDataHalt = 1'b1;
 
@@ -153,7 +151,6 @@ begin
     // From the default idle state, wait for a new set of test parameters.
     default :
     begin
-      testParamsHalt = 1'b0;
       testPassed_d = 1'b1;
       burstAddr_d = testParamBurstAddr;
       burstLen_d = testParamBurstLen;
@@ -189,7 +186,7 @@ begin
   readDataCounter_q <= readDataCounter_d;
 end
 
-assign testParamsStop = testParamsHalt;
+assign testParamsStop = (testState_q == TestIdle) 1'b0 : 1'b1;
 assign readParamsValid = readParamsReady;
 assign readParamBurstAddr = burstAddr_q;
 assign readParamBurstLen = burstLen_q;
