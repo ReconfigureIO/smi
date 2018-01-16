@@ -186,7 +186,7 @@ begin
   readDataCounter_q <= readDataCounter_d;
 end
 
-assign testParamsStop = (testState_q == TestIdle) 1'b0 : 1'b1;
+assign testParamsStop = (testState_q == TestIdle) ? 1'b0 : 1'b1;
 assign readParamsValid = readParamsReady;
 assign readParamBurstAddr = burstAddr_q;
 assign readParamBurstLen = burstLen_q;
