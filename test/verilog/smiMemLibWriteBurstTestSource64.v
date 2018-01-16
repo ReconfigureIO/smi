@@ -89,7 +89,6 @@ reg [63:0] dataCounterVal_q;
 reg [63:0] dataCounterIncr_q;
 reg [31:0] writeDataCounter_q;
 
-reg testParamsHalt;
 reg writeParamsReady;
 reg writeDataReady;
 
@@ -109,7 +108,6 @@ begin
   dataCounterIncr_d = dataCounterIncr_q;
   writeDataCounter_d = writeDataCounter_q;
 
-  testParamsHalt = 1'b1;
   writeParamsReady = 1'b0;
   writeDataReady = 1'b0;
 
@@ -147,7 +145,6 @@ begin
     // From the default idle state, wait for a new set of test parameters.
     default :
     begin
-      testParamsHalt = 1'b0;
       burstAddr_d = testParamBurstAddr;
       burstLen_d = testParamBurstLen;
       burstOpts_d = testParamBurstOpts;
@@ -181,7 +178,7 @@ begin
   writeDataCounter_q <= writeDataCounter_d;
 end
 
-assign testParamsStop = testParamsHalt;
+assign testParamsStop = (testState_q == TestIdle) ? 1'b0 : 1'b1;
 assign writeParamsValid = writeParamsReady;
 assign writeParamBurstAddr = burstAddr_q;
 assign writeParamBurstLen = burstLen_q;
