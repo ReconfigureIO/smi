@@ -92,8 +92,6 @@ reg [31:0] writeDataCounter_q;
 reg testParamsHalt;
 reg writeParamsReady;
 reg writeDataReady;
-reg testDoneReady;
-reg writeDoneHalt;
 
 // Implement combinatorial logic for write burst test state machine.
 always @(testState_q, burstAddr_q, burstLen_q, burstOpts_q, dataCounterVal_q,
@@ -114,8 +112,6 @@ begin
   testParamsHalt = 1'b1;
   writeParamsReady = 1'b0;
   writeDataReady = 1'b0;
-  testDoneReady = 1'b0;
-  writeDoneHalt = 1'b1;
 
   // Implement state machine.
   case (testState_q)
@@ -144,8 +140,6 @@ begin
     // Forward the status signals.
     TestGetStatus :
     begin
-      testDoneReady = writeDoneValid;
-      writeDoneHalt = testDoneStop;
       if (writeDoneValid & ~testDoneStop)
         testState_d = TestIdle;
     end
@@ -194,8 +188,8 @@ assign writeParamBurstLen = burstLen_q;
 assign writeParamBurstOpts = burstOpts_q;
 assign writeDataValid = writeDataReady;
 assign writeDataValue = dataCounterVal_q;
-assign testDoneValid = testDoneReady;
+assign testDoneValid = (testState_q == TestGetStatus) ? writeDoneValid : 1'b0;
 assign testDoneStatusOk = writeDoneStatusOk;
-assign writeDoneStop = writeDoneHalt;
+assign writeDoneStop = (testState_q == TestGetStatus) ? testDoneStop : 1'b1;
 
 endmodule
