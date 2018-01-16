@@ -88,7 +88,7 @@ parameter [2:0]
 wire configParamsValid;
 wire configParamsStop;
 wire configTestValid;
-reg  configTestStop;
+wire configTestStop;
 
 // Specify the burst parameter signals.
 wire        testParamsValid;
@@ -177,6 +177,8 @@ smiSelfFlowForkControl #(2) configFork
   (configValid, configStop, { configParamsValid, configTestValid },
   { configParamsStop, configTestStop }, clk, srst);
 
+assign configTestStop = (testState_q == TestStateIdle) ? 1'b0 : 1'b1;
+
 // Instantiate the test parameter generation logic.
 smiMemLibFuzzTestParamGen #(MinBurstLength, MaxBurstLength, RandSeed) paramGen
   (configParamsValid, configMemAddrBase, configMemBlockSize, configNumTests,
@@ -196,7 +198,6 @@ begin
   testState_d = testState_q;
   testCount_d = testCount_q;
   errorCount_d = errorCount_q;
-  configTestStop = 1'b1;
   testParamsStop = 1'b1;
   writeTestParamsValid = 1'b0;
   writeTestDoneStop = 1'b1;
@@ -212,7 +213,6 @@ begin
     begin
       testCount_d = configNumTests;
       errorCount_d = 32'd0;
-      configTestStop = 1'b0;
       if (configTestValid)
         testState_d = TestStateBurstCount;
     end
