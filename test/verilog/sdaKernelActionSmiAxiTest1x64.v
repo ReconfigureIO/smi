@@ -230,7 +230,7 @@ wire [63:0] smiRespData;
 wire        smiRespStop;
 
 // Specifies fuzz tester configuration and status signals.
-reg  configValid;
+wire configValid;
 wire configStop;
 
 reg        statusWriteValid;
@@ -282,6 +282,7 @@ begin
       4'd6 : paramAddrData = `AXI_CONTROL_OFFSET_ERR_RESULT_ADDR_H;
       4'd7 : paramAddrData = `AXI_CONTROL_OFFSET_DCOUNT_RESULT_ADDR_L;
       4'd8 : paramAddrData = `AXI_CONTROL_OFFSET_DCOUNT_RESULT_ADDR_H;
+      default : paramAddrData = 32'd0;
     endcase
     if (~paramaddr_0Stop)
       paramReqCount_d = paramReqCount_q + 4'd1;
@@ -316,7 +317,6 @@ begin
   doneReady = 1'b0;
   paramReq = 1'b0;
   paramReadHalt = 1'b1;
-  configValid = 1'b0;
   statusWriteValid = 1'b0;
   statusWriteData = 64'd0;
   statusWriteAddr = 64'd0;
@@ -410,7 +410,6 @@ begin
     // Set the configuration parameters, initiating the fuzz testing.
     TestStateSetConfig :
     begin
-      configValid = 1'b1;
       if (~configStop)
         testState_d = TestStateGetStatus;
     end
@@ -510,6 +509,8 @@ assign done_0Ready = doneReady;
 assign paramaddr_0Ready = paramAddrReady;
 assign paramaddr_0Data = paramAddrData;
 assign paramdata_0Stop = paramReadHalt;
+
+assign configValid = (testState_q == TestStateSetConfig) ? 1'b1 : 1'b0;
 
 // Implement AXI read control loopback.
 always @(posedge clk)
