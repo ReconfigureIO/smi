@@ -26,9 +26,9 @@
 
 module smiMemLibFuzzTestBurst64
   (configValid, configMemAddrBase, configMemBlockSize, configNumTests,
-  configStop, statusValid, statusErrorCount, statusStop, smiReqValid, smiReqEofc,
-  smiReqData, smiReqStop, smiRespValid, smiRespEofc, smiRespData, smiRespStop,
-  clk, srst);
+  configStop, statusValid, statusErrorCount, statusDataCount, statusStop,
+  smiReqValid, smiReqEofc, smiReqData, smiReqStop, smiRespValid, smiRespEofc,
+  smiRespData, smiRespStop, clk, srst);
 
 // Specifies the minimum supported burst length (in bytes).
 parameter MinBurstLength = 64;
@@ -56,6 +56,7 @@ output       configStop;
 // Specifies the test status output signals.
 output        statusValid;
 output [31:0] statusErrorCount;
+output [63:0] statusDataCount;
 input         statusStop;
 
 // Specifies the SMI request and response channel signals.
@@ -104,10 +105,12 @@ wire [7:0]  testParamBurstOpts;
 reg [2:0]  testState_d;
 reg [31:0] testCount_d;
 reg [31:0] errorCount_d;
+reg [63:0] dataCount_d;
 
 reg [2:0]  testState_q;
 reg [31:0] testCount_q;
 reg [31:0] errorCount_q;
+reg [63:0] dataCount_q;
 
 // Specify the burst stimulus control signals.
 reg  writeTestParamsValid;
@@ -189,15 +192,17 @@ assign testParamBurstLen = { 3'd0, testParamByteLength [31:3] };
 assign testParamBurstOpts = 8'd0;
 
 // Implement combinatorial logic for driving test process state machine.
-always @(testState_q, testCount_q, errorCount_q, configTestValid, configNumTests,
-  testParamsValid, writeTestParamsStop, writeTestDoneValid, writeTestDoneStatusOk,
-  readTestParamsStop, readTestDoneValid, readTestDoneStatusOk, statusBufStop)
+always @(testState_q, testCount_q, errorCount_q, dataCount_q, configTestValid,
+  configNumTests, testParamsValid, testParamByteLength, writeTestParamsStop,
+  writeTestDoneValid, writeTestDoneStatusOk, readTestParamsStop, readTestDoneValid,
+  readTestDoneStatusOk, statusBufStop)
 begin
 
   // Hold current state by default.
   testState_d = testState_q;
   testCount_d = testCount_q;
   errorCount_d = errorCount_q;
+  dataCount_d = dataCount_q;
   testParamsStop = 1'b1;
   writeTestParamsValid = 1'b0;
   writeTestDoneStop = 1'b1;
@@ -213,6 +218,7 @@ begin
     begin
       testCount_d = configNumTests;
       errorCount_d = 32'd0;
+      dataCount_d = 64'd0;
       if (configTestValid)
         testState_d = TestStateBurstCount;
     end
@@ -228,6 +234,7 @@ begin
       begin
         testState_d = TestStateStartWrite;
         testCount_d = testCount_q - 32'd1;
+        dataCount_d = dataCount_q + { 32'd0, testParamByteLength [31:3], 3'd0 };
       end
     end
 
@@ -309,6 +316,7 @@ always @(posedge clk)
 begin
   testCount_q <= testCount_d;
   errorCount_q <= errorCount_d;
+  dataCount_q <= dataCount_d;
 end
 
 // Instantiate burst write stimulus generator.
@@ -355,8 +363,8 @@ smiTransactionArbiterX2 #(8, 2, 3*BurstSegmentSize, 3) transactionArbiter
   smiRespData, smiRespStop, clk, srst);
 
 // Implement toggle buffer on status output.
-smiSelfLinkToggleBuffer #(32) statusBuffer
-  (statusBufValid, errorCount_q, statusBufStop, statusValid, statusErrorCount,
-  statusStop, clk, srst);
+smiSelfLinkToggleBuffer #(96) statusBuffer
+  (statusBufValid, { errorCount_q, dataCount_q }, statusBufStop, statusValid,
+  { statusErrorCount, statusDataCount }, statusStop, clk, srst);
 
 endmodule
