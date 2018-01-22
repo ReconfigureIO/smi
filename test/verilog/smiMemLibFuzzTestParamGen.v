@@ -32,10 +32,10 @@ module smiMemLibFuzzTestParamGen
   paramDataIncr, paramsStop, clk, srst);
 
 // Specifies the minimum supported burst length (in bytes).
-parameter MinBurstLength = 64;
+parameter MinBurstLength = 8;
 
 // Specifies the maximum supported burst length (in bytes).
-parameter MaxBurstLength = 8192;
+parameter MaxBurstLength = (1024 * 1024 * 1024);
 
 // Specifies the pseudo-random number generator seed.
 parameter RandSeed = 64'h373E7B7D27C69FA4;
