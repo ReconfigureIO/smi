@@ -1,5 +1,5 @@
 //
-// Copyright 2017 ReconfigureIO
+// Copyright 2018 ReconfigureIO
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,18 +15,17 @@
 //
 
 //
-// Implements message steering to four SMI outputs from one SMI input based on
+// Implements message steering to three SMI outputs from one SMI input based on
 // message type field matching. Matching message types are steered to outputs
-// A, B, C or D and non-matching message types are discarded.
+// A, B or C and non-matching message types are discarded.
 //
 
 `timescale 1ns/1ps
 
-module smiFrameSteerX4
+module smiFrameSteerX3
   (smiInReady, smiInEofc, smiInData, smiInStop, smiOutAReady, smiOutAEofc,
   smiOutAData, smiOutAStop, smiOutBReady, smiOutBEofc, smiOutBData, smiOutBStop,
-  smiOutCReady, smiOutCEofc, smiOutCData, smiOutCStop, smiOutDReady, smiOutDEofc,
-  smiOutDData, smiOutDStop, clk, srst);
+  smiOutCReady, smiOutCEofc, smiOutCData, smiOutCStop, clk, srst);
 
 // Specifies the flit width of the SMI interfaces. Must be at least 4.
 parameter FlitWidth = 16;
@@ -39,9 +38,6 @@ parameter TypeMatchB = 1;
 
 // Specifies the message type matching word value for output C.
 parameter TypeMatchC = 2;
-
-// Specifies the message type matching word value for output D.
-parameter TypeMatchD = 3;
 
 // Specifies the message type matching mask. Mask bits which are set to zero
 // denote don't care bits.
@@ -76,11 +72,6 @@ output [7:0]             smiOutCEofc;
 output [FlitWidth*8-1:0] smiOutCData;
 input                    smiOutCStop;
 
-output                   smiOutDReady;
-output [7:0]             smiOutDEofc;
-output [FlitWidth*8-1:0] smiOutDData;
-input                    smiOutDStop;
-
 // Specifies the SMI input port registers.
 reg                   smiInReady_q;
 reg [7:0]             smiInEofc_q;
@@ -89,7 +80,6 @@ reg                   smiInLast_q;
 reg                   smiInSteerA_q;
 reg                   smiInSteerB_q;
 reg                   smiInSteerC_q;
-reg                   smiInSteerD_q;
 wire                  smiInHalt;
 
 // Specifies the SMI output buffer signals.
@@ -104,10 +94,6 @@ wire [FlitWidth*8+7:0] smiOutBVec;
 wire                   smiBufCReady;
 wire                   smiBufCStop;
 wire [FlitWidth*8+7:0] smiOutCVec;
-
-wire                   smiBufDReady;
-wire                   smiBufDStop;
-wire [FlitWidth*8+7:0] smiOutDVec;
 
 // Implement resettable SMI input control registers with integrated end of
 // frame detection logic.
@@ -144,8 +130,6 @@ begin
         ((TypeMask[31:0] & (TypeMatchB[31:0] ^ smiInData[31:0])) == 32'd0) ? 1'b1 : 1'b0;
       smiInSteerC_q <=
         ((TypeMask[31:0] & (TypeMatchC[31:0] ^ smiInData[31:0])) == 32'd0) ? 1'b1 : 1'b0;
-      smiInSteerD_q <=
-        ((TypeMask[31:0] & (TypeMatchD[31:0] ^ smiInData[31:0])) == 32'd0) ? 1'b1 : 1'b0;
     end
   end
 end
@@ -154,12 +138,10 @@ end
 assign smiBufAReady = smiInReady_q & smiInSteerA_q;
 assign smiBufBReady = smiInReady_q & smiInSteerB_q;
 assign smiBufCReady = smiInReady_q & smiInSteerC_q;
-assign smiBufDReady = smiInReady_q & smiInSteerD_q;
 
 assign smiInHalt = (smiInSteerA_q & smiBufAStop) |
                    (smiInSteerB_q & smiBufBStop) |
-                   (smiInSteerC_q & smiBufCStop) |
-                   (smiInSteerD_q & smiBufDStop);
+                   (smiInSteerC_q & smiBufCStop);
 
 // Instantiate output buffers.
 smiSelfLinkDoubleBuffer #((FlitWidth+1)*8) smiBufA
@@ -182,12 +164,5 @@ smiSelfLinkDoubleBuffer #((FlitWidth+1)*8) smiBufC
 
 assign smiOutCEofc = smiOutCVec [FlitWidth*8+7:FlitWidth*8];
 assign smiOutCData = smiOutCVec [FlitWidth*8-1:0];
-
-smiSelfLinkDoubleBuffer #((FlitWidth+1)*8) smiBufD
-  (smiBufDReady, {smiInEofc_q, smiInData_q}, smiBufDStop,
-  smiOutDReady, smiOutDVec, smiOutDStop, clk, srst);
-
-assign smiOutDEofc = smiOutDVec [FlitWidth*8+7:FlitWidth*8];
-assign smiOutDData = smiOutDVec [FlitWidth*8-1:0];
 
 endmodule
