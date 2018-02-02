@@ -1,5 +1,5 @@
 //
-// Copyright 2017 ReconfigureIO
+// Copyright 2018 ReconfigureIO
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,16 +20,14 @@
 
 `timescale 1ns/1ps
 
-module smiTransactionArbiterX4
+module smiTransactionArbiterX3
   (smiReqAInReady, smiReqAInEofc, smiReqAInData, smiReqAInStop, smiRespAOutReady,
   smiRespAOutEofc, smiRespAOutData, smiRespAOutStop, smiReqBInReady,
   smiReqBInEofc, smiReqBInData, smiReqBInStop, smiRespBOutReady, smiRespBOutEofc,
   smiRespBOutData, smiRespBOutStop, smiReqCInReady, smiReqCInEofc, smiReqCInData,
   smiReqCInStop, smiRespCOutReady, smiRespCOutEofc, smiRespCOutData,
-  smiRespCOutStop, smiReqDInReady, smiReqDInEofc, smiReqDInData, smiReqDInStop,
-  smiRespDOutReady, smiRespDOutEofc, smiRespDOutData, smiRespDOutStop,
-  smiReqOutReady, smiReqOutEofc, smiReqOutData, smiReqOutStop, smiRespInReady,
-  smiRespInEofc, smiRespInData, smiRespInStop, clk, srst);
+  smiRespCOutStop, smiReqOutReady, smiReqOutEofc, smiReqOutData, smiReqOutStop,
+  smiRespInReady, smiRespInEofc, smiRespInData, smiRespInStop, clk, srst);
 
 // Specifes the width of the data input and output ports. Must be at least 4.
 parameter FlitWidth = 4;
@@ -69,11 +67,6 @@ input [7:0]           smiReqCInEofc;
 input [DataWidth-1:0] smiReqCInData;
 output                smiReqCInStop;
 
-input                 smiReqDInReady;
-input [7:0]           smiReqDInEofc;
-input [DataWidth-1:0] smiReqDInData;
-output                smiReqDInStop;
-
 input                 smiRespInReady;
 input [7:0]           smiRespInEofc;
 input [DataWidth-1:0] smiRespInData;
@@ -99,11 +92,6 @@ output                 smiRespCOutReady;
 output [7:0]           smiRespCOutEofc;
 output [DataWidth-1:0] smiRespCOutData;
 input                  smiRespCOutStop;
-
-output                 smiRespDOutReady;
-output [7:0]           smiRespDOutEofc;
-output [DataWidth-1:0] smiRespDOutData;
-input                  smiRespDOutStop;
 
 // Specifies the internal bus A signals.
 wire                 smiReqAIntReady;
@@ -168,27 +156,6 @@ wire [7:0]           smiRespCBufEofc;
 wire [DataWidth-1:0] smiRespCBufData;
 wire                 smiRespCBufStop;
 
-// Specifies the internal bus D signals.
-wire                 smiReqDIntReady;
-wire [7:0]           smiReqDIntEofc;
-wire [DataWidth-1:0] smiReqDIntData;
-wire                 smiReqDIntStop;
-
-wire                 smiReqDBufReady;
-wire [7:0]           smiReqDBufEofc;
-wire [DataWidth-1:0] smiReqDBufData;
-wire                 smiReqDBufStop;
-
-wire                 smiRespDIntReady;
-wire [7:0]           smiRespDIntEofc;
-wire [DataWidth-1:0] smiRespDIntData;
-wire                 smiRespDIntStop;
-
-wire                 smiRespDBufReady;
-wire [7:0]           smiRespDBufEofc;
-wire [DataWidth-1:0] smiRespDBufData;
-wire                 smiRespDBufStop;
-
 // Instantiate transaction matcher on upstream bus A.
 smiTransactionMatcher #(FlitWidth, 0, TagIdWidth) busAMatcher
   (smiReqAInReady, smiReqAInEofc, smiReqAInData, smiReqAInStop, smiReqAIntReady,
@@ -237,36 +204,18 @@ smiFrameBuffer #(FlitWidth, FifoSize) busCRespBuffer
   (smiRespCBufReady, smiRespCBufEofc, smiRespCBufData, smiRespCBufStop,
   smiRespCIntReady, smiRespCIntEofc, smiRespCIntData, smiRespCIntStop, clk, srst);
 
-// Instantiate transaction matcher on upstream bus D.
-smiTransactionMatcher #(FlitWidth, 3, TagIdWidth) busDMatcher
-  (smiReqDInReady, smiReqDInEofc, smiReqDInData, smiReqDInStop, smiReqDIntReady,
-  smiReqDIntEofc, smiReqDIntData, smiReqDIntStop, smiRespDIntReady, smiRespDIntEofc,
-  smiRespDIntData, smiRespDIntStop, smiRespDOutReady, smiRespDOutEofc, smiRespDOutData,
-  smiRespDOutStop, clk, srst);
-
-// Instantiate FIFO buffers on upstream bus D.
-smiFrameAssembler #(FlitWidth, FifoSize, MaxFrameCount) busDReqBuffer
-  (smiReqDIntReady, smiReqDIntEofc, smiReqDIntData, smiReqDIntStop, smiReqDBufReady,
-  smiReqDBufEofc, smiReqDBufData, smiReqDBufStop, clk, srst);
-
-smiFrameBuffer #(FlitWidth, FifoSize) busDRespBuffer
-  (smiRespDBufReady, smiRespDBufEofc, smiRespDBufData, smiRespDBufStop,
-  smiRespDIntReady, smiRespDIntEofc, smiRespDIntData, smiRespDIntStop, clk, srst);
-
 // Instantiate frame arbitration between upstream requests.
-smiFrameArbiterX4 #(FlitWidth) reqArbiter
+smiFrameArbiterX3 #(FlitWidth) reqArbiter
   (smiReqABufReady, smiReqABufEofc, smiReqABufData, smiReqABufStop,
   smiReqBBufReady, smiReqBBufEofc, smiReqBBufData, smiReqBBufStop,
   smiReqCBufReady, smiReqCBufEofc, smiReqCBufData, smiReqCBufStop,
-  smiReqDBufReady, smiReqDBufEofc, smiReqDBufData, smiReqDBufStop,
   smiReqOutReady, smiReqOutEofc, smiReqOutData, smiReqOutStop, clk, srst);
 
 // Instantiate frame steering to upstream responses.
-smiFrameSteerX4 #(FlitWidth, 0, (1 << 26), (2 << 26), (3 << 26), (63 << 26)) respSteer
+smiFrameSteerX3 #(FlitWidth, 0, (1 << 26), (2 << 26), (3 << 26)) respSteer
   (smiRespInReady, smiRespInEofc, smiRespInData, smiRespInStop, smiRespABufReady,
   smiRespABufEofc, smiRespABufData, smiRespABufStop, smiRespBBufReady,
   smiRespBBufEofc, smiRespBBufData, smiRespBBufStop, smiRespCBufReady,
-  smiRespCBufEofc, smiRespCBufData, smiRespCBufStop, smiRespDBufReady,
-  smiRespDBufEofc, smiRespDBufData, smiRespDBufStop, clk, srst);
+  smiRespCBufEofc, smiRespCBufData, smiRespCBufStop, clk, srst);
 
 endmodule
