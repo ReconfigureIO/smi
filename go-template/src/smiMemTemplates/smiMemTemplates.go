@@ -14,21 +14,26 @@
 // limitations under the License.//
 //
 
+//
+// Package smiMemTemplates provides a set of functions for generating Verilog
+// source code files for the SMI memory infrastructure using parameterised
+// templates.
+//
 package smiMemTemplates
 
 import (
-	//"errors"
 	"os"
 )
 
 //
-// Creates an SMI memory arbitration tree module for the number of SMI client
-// endpoints specified by the 'numClients' parameter. The generated code
-// incorporates bus width scaling such that the client side flits are 64 bits
-// wide and the server side flits are 256 bits wide. Writes the module data to
-// the Verilog source file specified by the 'fileName' parameter and using the
-// Verilog module name specified by the 'moduleName' parameter. Returns an
-// error item which will be set to 'nil' on successful completion.
+// CreateArbitrationTree generates an SMI memory arbitration tree module for the
+// number of SMI client endpoints specified by the 'numClients' parameter. The
+// generated code incorporates bus width scaling such that the client side flits
+// are 64 bits wide and the server side flits are 512 bits wide. Writes the
+// module source code to the Verilog source file specified by the 'fileName'
+// parameter and using the Verilog module name specified by the 'moduleName'
+// parameter. Returns an error item which will be set to 'nil' on successful
+// completion.
 //
 func CreateArbitrationTree(fileName string, moduleName string, numClients uint) error {
 	var outFile *os.File
