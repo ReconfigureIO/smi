@@ -78,7 +78,6 @@ var smiMemBusFileHeaderTemplate = `
 //
 
 ` + "`timescale 1ns/1ps" + `
-
 {{end}}`
 
 //
@@ -87,7 +86,7 @@ var smiMemBusFileHeaderTemplate = `
 //
 var smiMemBusConnectionClientPortTemplate = `
 {{define "smiMemBusConnectionClientPort"}}{{if .}}{{range .}}
-  // Specify SMI ports for {{.SmiNetReqName}}/{{.SmiNetRespName}}
+  // SMI ports for {{.SmiNetReqName}}/{{.SmiNetRespName}}
   input          {{.SmiNetReqName -}}Ready,
   input  [  7:0] {{.SmiNetReqName -}}Eofc,
   input  {{makeBitSliceFromScaledWidth .SmiMemBusFlitWidth 8}} {{.SmiNetReqName -}}Data,
@@ -104,7 +103,7 @@ var smiMemBusConnectionClientPortTemplate = `
 //
 var smiMemBusConnectionServerPortTemplate = `
 {{define "smiMemBusConnectionServerPort"}}{{if .}}{{range .}}
-  // Specify SMI ports for {{.SmiNetReqName}}/{{.SmiNetRespName}}
+  // SMI ports for {{.SmiNetReqName}}/{{.SmiNetRespName}}
   output         {{.SmiNetReqName -}}Ready,
   output [  7:0] {{.SmiNetReqName -}}Eofc,
   output {{makeBitSliceFromScaledWidth .SmiMemBusFlitWidth 8}} {{.SmiNetReqName -}}Data,
@@ -121,7 +120,7 @@ var smiMemBusConnectionServerPortTemplate = `
 //
 var smiMemBusConnectionWireListTemplate = `
 {{define "smiMemBusConnectionWireList"}}{{if .}}{{range .}}
-// Specify SMI connections for {{.SmiNetReqName}}/{{.SmiNetRespName}}
+// SMI connections for {{.SmiNetReqName}}/{{.SmiNetRespName}}
 wire         {{.SmiNetReqName -}}Ready;
 wire [  7:0] {{.SmiNetReqName -}}Eofc;
 wire {{makeBitSliceFromScaledWidth .SmiMemBusFlitWidth 8}} {{.SmiNetReqName -}}Data;
@@ -148,7 +147,7 @@ var smiMemBusConnectionPortLinkTemplate = `` +
   .{{.SmiNetRespName -}}Data  ({{.SmiNetRespName -}}Data),
   .{{.SmiNetRespName -}}Stop  ({{.SmiNetRespName -}}Stop),{{end}}` +
 	`{{define "smiMemBusConnectionPortLink"}}{{if .}}{{range .}}
-  // Connect SMI ports for {{.SmiNetReqName}}/{{.SmiNetRespName}}
+  // SMI ports for {{.SmiNetReqName}}/{{.SmiNetRespName}}
   {{template "smiReqBusConnectionPortLink" .}}
   {{template "smiRespBusConnectionPortLink" .}}
 {{end}}{{end}}{{end}}`

@@ -45,11 +45,11 @@ var smiMemBusArbitrationTreeTemplate = `
 module {{.ModuleName}} (
   {{template "smiMemBusConnectionClientPort" .SmiMemBusClientConns}}
   {{template "smiMemBusConnectionServerPort" .SmiMemBusServerConn}}
-  
+
   // Specify system level signals.
   input clk,
   input srst
-);  
+);
   {{template "smiMemBusConnectionWireList" .SmiMemBusWireConns}}
   {{range .SmiMemBusWidthScalers}}{{template "smiMemBusWidthScaler" .}}{{end}}
   {{range .SmiMemBusArbiters}}{{template "smiMemBusArbiter" .}}{{end}}
@@ -70,7 +70,6 @@ func getArbitrationTreeTemplate() *template.Template {
 		templGroup = template.Must(templGroup.Parse(smiMemBusFileHeaderTemplate))
 		templGroup = template.Must(templGroup.Parse(smiMemBusConnectionClientPortTemplate))
 		templGroup = template.Must(templGroup.Parse(smiMemBusConnectionServerPortTemplate))
-		templGroup = template.Must(templGroup.Parse(smiMemBusConnectionPortLinkTemplate))
 		templGroup = template.Must(templGroup.Parse(smiMemBusConnectionWireListTemplate))
 		templGroup = template.Must(templGroup.Parse(smiMemBusArbiterTemplate))
 		templGroup = template.Must(templGroup.Parse(smiMemBusWidthScalerTemplate))
@@ -110,15 +109,15 @@ func configureArbitrationTree(moduleName string, numClients uint) (arbitrationTr
 		arbitrationTree.SmiMemBusWidthScalers = make([]smiMemBusWidthScalerConfig, numClients)
 		for i := uint(0); i < numClients; i++ {
 			clientConn := smiMemBusConnectionConfig{
-				fmt.Sprintf("smiMemClientReq%02d", i),
-				fmt.Sprintf("smiMemClientResp%02d", i), 8}
+				fmt.Sprintf("smiMemClientReq%d", i),
+				fmt.Sprintf("smiMemClientResp%d", i), 8}
 			wireConn := smiMemBusConnectionConfig{
-				fmt.Sprintf("smiMemScaledReq%02d", i),
-				fmt.Sprintf("smiMemScaledResp%02d", i), 32}
+				fmt.Sprintf("smiMemScaledReq%d", i),
+				fmt.Sprintf("smiMemScaledResp%d", i), 32}
 			arbitrationTree.SmiMemBusClientConns[i] = clientConn
 			arbitrationTree.SmiMemBusWireConns[i] = wireConn
 			arbitrationTree.SmiMemBusWidthScalers[i] = smiMemBusWidthScalerConfig{
-				fmt.Sprintf("busWidthScaler%02d", i), 4, 8,
+				fmt.Sprintf("busWidthScaler%d", i), 4, 8,
 				clientConn, wireConn}
 		}
 
@@ -204,8 +203,8 @@ func configureArbitrationTree(moduleName string, numClients uint) (arbitrationTr
 				fmt.Sprintf("smiWireRespL1I%d", i), 16}
 			if fanInsLayer2[i] == 1 {
 				clientSideConn := smiMemBusConnectionConfig{
-					fmt.Sprintf("smiMemClientReq%02d", clientIndex),
-					fmt.Sprintf("smiMemClientResp%02d", clientIndex), 8}
+					fmt.Sprintf("smiMemClientReq%d", clientIndex),
+					fmt.Sprintf("smiMemClientResp%d", clientIndex), 8}
 				busWidthScaler := smiMemBusWidthScalerConfig{
 					fmt.Sprintf("busWidthScalerL2I%d", i), 2, 8,
 					clientSideConn, serverSideConn}
@@ -217,8 +216,8 @@ func configureArbitrationTree(moduleName string, numClients uint) (arbitrationTr
 				clientSideConns := make([]smiMemBusConnectionConfig, fanInsLayer2[i])
 				for j := uint(0); j < fanInsLayer2[i]; j++ {
 					clientSideConns[j] = smiMemBusConnectionConfig{
-						fmt.Sprintf("smiMemClientReq%02d", clientIndex+j),
-						fmt.Sprintf("smiMemClientResp%02d", clientIndex+j), 8}
+						fmt.Sprintf("smiMemClientReq%d", clientIndex+j),
+						fmt.Sprintf("smiMemClientResp%d", clientIndex+j), 8}
 				}
 				busArbiter := smiMemBusArbiterConfig{
 					fmt.Sprintf("busArbiterL2I%d", i), 32, 4, 8, 4,
