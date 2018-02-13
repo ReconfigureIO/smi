@@ -56,3 +56,34 @@ func CreateArbitrationTree(fileName string, moduleName string, numClients uint) 
 	// Generate the Verilog file.
 	return executeArbitrationTreeTemplate(outFile, config)
 }
+
+//
+// CreateSmiSdaKernelAdaptor generates a configurable SMI kernel adaptor for the
+// standard SDAccel build process. Writes the module source code to the Verilog
+// source file specified by the 'fileName' parameter using the Verilog module
+// name specified by the 'moduleName' parameter. The wrapper supports the number
+// of independent SMI memory access ports specified by the 'numClients'
+// parameter. Returns an error item which will be set to 'nil' on successful
+// completion.
+//
+func CreateSmiSdaKernelAdaptor(fileName string, moduleName string, numClients uint) error {
+	var outFile *os.File
+	var config smiSdaKernelAdaptorConfig
+	var err error
+
+	// Attempt to open the specified file for output.
+	outFile, err = os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer outFile.Close()
+
+	// Set up the template configuration.
+	config, err = configureSmiSdaKernelAdaptor(moduleName, numClients)
+	if err != nil {
+		return err
+	}
+
+	// Generate the Verilog file.
+	return executeSmiSdaKernelAdaptorTemplate(outFile, config)
+}
