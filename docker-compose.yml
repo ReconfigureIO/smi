@@ -1,0 +1,7 @@
+version: '2'
+services:
+  test:
+    build: docker
+    working_dir: /go/src/github.com/ReconfigureIO/smi
+    volumes:
+      - .:/go/src/github.com/ReconfigureIO/smi
