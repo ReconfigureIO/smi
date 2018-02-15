@@ -1,0 +1,48 @@
+language: go
+
+env:
+  global:
+    - PROJECT_NAME=smi
+
+go_import_path: github.com/ReconfigureIO/smi
+
+matrix:
+  include:
+    - env: TARGET=x86_64-unknown-linux
+      os: linux
+
+go:
+  - 1.9
+
+script:
+  - make test
+  - make all
+
+before_deploy:
+  - make pkg
+
+deploy:
+  provider: releases
+  api_key:
+    secure: "YZ63fRqGPVi9U25U/vngJNl2iR0FCvnpsg6X+12g9j/Fk6GG5VbePE5rHmwKzFz4WPHEexet0Dfu35/bCNdynuv26PuPyA/17nIIxRNlRBA892wOHBBp1Dt3xz/75CbL/NqyBtXshNogM9iRggblUuYFiS7z5xXTpPxn6b3sphyi0rIl2SXmWe/Xckxhgu1kTe1jbsO2QghRx1uDinVWXx4pfS9J3OpOIMf0HTHRVhHMp9hX+wqYsHBAs2VAf3qhzkL1czacljg+Cze83Cyiiftxnfd6y5qNkXyukECL9+oJ9xB5UzYxVoPV2slr/lwCd/wKG4lwQnqXfquvexLWvXPeYrT0IFwLKvimjMP/P58dbJavIScyf0KKsMx7kWgwY9ZQXIZfvpffsuCVgkBeErwcOj3yfl3ArX+lhStZ523NFRrJlqr1SUnaJsdBD49iIdUW97FaguPjSqgSbhoLT7ZSkPnSRX47/dsp/wI4BaCh+6VWl5UPWCiXdSimXgR4HgaDk629tyDfSf76PfR5smGwS5HJPkGNB9qNyZG0qTRAEZ4syRDdT7dD4zIgWUauvWwSkd81dcYkv+i0hIj1SQ3QCJWDXz6IptbvXUVDR8DKWzQK0IiUEeh4MjeFX6PNSOGIsL5hZbFa3SP5MkwjX3BjSe0qfPU59AKnwHZXABs="
+  file_glob: true
+  file: dist/*
+  # don't delete the artifacts from previous phases
+  skip_cleanup: true
+  # deploy when a new tag is pushed
+  on:
+    tags: true
+
+branches:
+  only:
+    # Pushes and PR to the master branch
+    - master
+    # IMPORTANT Ruby regex to match tags. Required, or travis won't trigger deploys when a new tag
+    # is pushed. This regex matches semantic versions like v1.2.3-rc4+2016.02.22
+    - /^v\d+\.\d+\.\d+.*$/
+
+notifications:
+  email:
+    on_success: never
+  slack:
+    secure: "XiShk3vBDLOJh/p52R/hhpcMLkorvgVr4D1XjoW7S61UKcnil+QG8oy4ao+G1hfSti/Ap6YCoj5yX0uzalfRCLtntyIbM82aOQaKNbLDIbBZ9q5AYQo4gd5eeE6HXSnoFG3MMzaNY/QOHQcJun5IrGk7deIg+Jcj7l9BaXDoZSimCf6LR8HI2UynbZ/nHoMu6Mou30nBKsYc2UkW1QzcB84SRdQ76+nPR3e6Ermu+zzv6o6BJQxgihcSy5VvgbrxItD+Mn0KvKjKZydlY8wrwuV8amM1nq3tVInCZWr/IGE39XD3CjtofQhWahfhYjXQnYbjMgK246HW4BrVfg4lxCCaheMgM0z74wTfLvoCgXpBgxvKbsvWupmZ9O0eBFFFjghd15wgMyuLz0gJZpWt/tTXdkzrdahbzgdhsj2nSy2aLXGK5pISsRdnxaNomPwYgsbAQ8Nj+YlqLGlwE/tl/mF4ZY079CqbgprD7PIz9HP2wVbw9TJdGutDC5eorGvPb6jDXL6oEt6K3c4MrPDZUbbdMk943J3fSlApU0+o84NZ55CiZTjNMH26vOTKyCS99WCpG4FKzDQAwlB4eD7rUfCJk/B/kjB034Kj6nSMb/vo8CHl7o0pz53GJbFpaGM86BlrbOMbXHDEpcgYiT5BOFby4Hj8/hrImHFvzgf6i4M="
