@@ -277,8 +277,8 @@ assign {{.SmiNetRespName}}Flit = { {{.SmiNetRespName}}Eofc, {{.SmiNetRespName}}D
   .s_axi_arready (s_axi_arready),
   .s_axi_rdata   (s_axi_rdata),
   .s_axi_rresp   (s_axi_rresp),
-  .s_axi_rvalid, (s_axi_rvalid),
-  .s_axi_rready, (s_axi_rready),
+  .s_axi_rvalid  (s_axi_rvalid),
+  .s_axi_rready  (s_axi_rready),
 
   // Connect AXI slave write bus signals.
   .s_axi_awaddr  (s_axi_awaddr),
@@ -332,7 +332,8 @@ func configureSmiSdaKernelAdaptor(moduleName string, numPorts uint) (smiSdaKerne
 	smiSdaKernelAdaptor.ModuleName = moduleName
 	smiSdaKernelAdaptor.ArbitrationModuleName =
 		fmt.Sprintf("smiMemArbitrationTreeX%d", numPorts)
-	smiSdaKernelAdaptor.KernelModuleName = "teak__action__top__gmem"
+	smiSdaKernelAdaptor.KernelModuleName =
+		fmt.Sprintf("teak__action__top__smi__x%d", numPorts)
 	smiSdaKernelAdaptor.AxiBusIdWidth = 1
 
 	// Add the common connection signals.
