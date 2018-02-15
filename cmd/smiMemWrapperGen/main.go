@@ -19,7 +19,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"smiMemTemplates"
+	"github.com/ReconfigureIO/smi/go-template/src/smiMemTemplates"
 )
 
 func main() {
