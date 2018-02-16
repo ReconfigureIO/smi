@@ -11,6 +11,11 @@ matrix:
     - env: TARGET=x86_64-unknown-linux
       os: linux
 
+addons:
+  apt:
+    packages:
+    - verilator
+
 go:
   - 1.9
 
