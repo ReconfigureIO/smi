@@ -38,4 +38,4 @@ dist/${NAME}-${TRAVIS_TAG}-${TARGET}.tar.gz: all
 	cd build && tar czf ../$@ *
 
 clean:
-	rm -rf dist
+	rm -rf dist build
