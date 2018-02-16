@@ -22,16 +22,32 @@ before_deploy:
   - make pkg
 
 deploy:
-  provider: releases
-  api_key:
-    secure: "YZ63fRqGPVi9U25U/vngJNl2iR0FCvnpsg6X+12g9j/Fk6GG5VbePE5rHmwKzFz4WPHEexet0Dfu35/bCNdynuv26PuPyA/17nIIxRNlRBA892wOHBBp1Dt3xz/75CbL/NqyBtXshNogM9iRggblUuYFiS7z5xXTpPxn6b3sphyi0rIl2SXmWe/Xckxhgu1kTe1jbsO2QghRx1uDinVWXx4pfS9J3OpOIMf0HTHRVhHMp9hX+wqYsHBAs2VAf3qhzkL1czacljg+Cze83Cyiiftxnfd6y5qNkXyukECL9+oJ9xB5UzYxVoPV2slr/lwCd/wKG4lwQnqXfquvexLWvXPeYrT0IFwLKvimjMP/P58dbJavIScyf0KKsMx7kWgwY9ZQXIZfvpffsuCVgkBeErwcOj3yfl3ArX+lhStZ523NFRrJlqr1SUnaJsdBD49iIdUW97FaguPjSqgSbhoLT7ZSkPnSRX47/dsp/wI4BaCh+6VWl5UPWCiXdSimXgR4HgaDk629tyDfSf76PfR5smGwS5HJPkGNB9qNyZG0qTRAEZ4syRDdT7dD4zIgWUauvWwSkd81dcYkv+i0hIj1SQ3QCJWDXz6IptbvXUVDR8DKWzQK0IiUEeh4MjeFX6PNSOGIsL5hZbFa3SP5MkwjX3BjSe0qfPU59AKnwHZXABs="
-  file_glob: true
-  file: dist/*
-  # don't delete the artifacts from previous phases
-  skip_cleanup: true
-  # deploy when a new tag is pushed
-  on:
-    tags: true
+  - provider: releases
+    api_key:
+      secure: "YZ63fRqGPVi9U25U/vngJNl2iR0FCvnpsg6X+12g9j/Fk6GG5VbePE5rHmwKzFz4WPHEexet0Dfu35/bCNdynuv26PuPyA/17nIIxRNlRBA892wOHBBp1Dt3xz/75CbL/NqyBtXshNogM9iRggblUuYFiS7z5xXTpPxn6b3sphyi0rIl2SXmWe/Xckxhgu1kTe1jbsO2QghRx1uDinVWXx4pfS9J3OpOIMf0HTHRVhHMp9hX+wqYsHBAs2VAf3qhzkL1czacljg+Cze83Cyiiftxnfd6y5qNkXyukECL9+oJ9xB5UzYxVoPV2slr/lwCd/wKG4lwQnqXfquvexLWvXPeYrT0IFwLKvimjMP/P58dbJavIScyf0KKsMx7kWgwY9ZQXIZfvpffsuCVgkBeErwcOj3yfl3ArX+lhStZ523NFRrJlqr1SUnaJsdBD49iIdUW97FaguPjSqgSbhoLT7ZSkPnSRX47/dsp/wI4BaCh+6VWl5UPWCiXdSimXgR4HgaDk629tyDfSf76PfR5smGwS5HJPkGNB9qNyZG0qTRAEZ4syRDdT7dD4zIgWUauvWwSkd81dcYkv+i0hIj1SQ3QCJWDXz6IptbvXUVDR8DKWzQK0IiUEeh4MjeFX6PNSOGIsL5hZbFa3SP5MkwjX3BjSe0qfPU59AKnwHZXABs="
+    file_glob: true
+    file: dist/*
+    # don't delete the artifacts from previous phases
+    skip_cleanup: true
+    # deploy when a new tag is pushed
+    on:
+      tags: true
+
+  - provider: s3
+    access_key_id:
+      secure: "pe/Ugwak923ntoIUHEmCZ6ub1CniVE8iOXNLjZCnUG52L97x8Wu3T1jmmJR/SAo/WZCtFFtGosg3uFGHdEI68HeJxztlONE5iOeYQsJAcFFEDzwbdmNkHWrfihCCkZSx8sfdkItpiYl3HnOjw0OLns/hLCGCxhHC6zrMyhYwpk5r9hEVZalU0qkz/jNsm23wJpOxVzBGpmQmlPNRx4vqZKyR6l4tqEkl9pJI2KhvPLd2Z3wYrdTvM74StpUbvwBFJTeQU+jrkyXN24LSn07hNlVrrLEao5emrtaM0W6t4g4TDdm1kG3DZtqPtr+DvpmdmDRjDDFidDrZl54bSEkndov2OdnNs1RDjRqOSi5xdH9YJSlZsdt7m+ZslbEinO8h6Pfwh1tLJX6ITAQ6m7xOzxpnQJQ6hwCgj3KxStD2tR7Mrw6OqIQB5hdbzNi1EwJcFcuPAca8ejud33RTBgmXGWukHRZpfOm21rDNso00UtJtHINp4Rt/qLNffqvbscRrq+pi9foF/Jq4yodE6xPI/S0/J++dcudvNh2ram7G3z0sWwAbCROJq2qYAYgwzvz0fxdcEeU2RnXDVA5rjhTpoP+vEt0WAJUnp+QXG4HGkvmpZxeTUfGgQGDpLiZzFSrR1xw3jQHLdCqA2WNLOxzuJRZaLD54v0ax64aSwnBcQ4I="
+    secret_access_key:
+      secure: "MoAdsuGbYTJMuSloC0MHH6m9LfC/+X2rSm/nx7ZqR3NX4FzxN7x6wRMWU/EC9psfmWw0mr+KDxoIkFXUxE4rlog2R7DbzyvysHVOhWd7tOrnFMhQ0Y558m+Fk2PuWMpUST7OWcT4RxEXOnLiiuol5k1vsgh9/mDR1rwlNRQvTC8wEz+ucQcpCUsmgtXDllSyK2WQcvYGVW+f/+adQ5EHT+KKv6BWNnOnlvuU01mSsEMDEbiHQVmK+PfYrvte4XHW7qwDwRiQDY8H+8i1f0nNajYRKatgH3RlG83/Wf4T9H4UiW5AGJyEIODqR00rL6I+w/JB8hB/qmp0DaUFGeTY5jlpbw2XLyUm681vtnLGtmdS0Ah+cTWA+JobwUNO5nJ0zUmRxjXcOxqTdyqeDdHJmxRM0E02SonmaUUcGM5lxjzWAPdl34cD6zgV/nrVRQOw6jwE1H93mHUX6LHLIPc4VGSFxUXhp7pfnB+H/ioGB8Hrqfp2Tjfg7uX6jx00t/yGh70nfgXMROGI6cf4wIB4NrWe/3DCFmyRCqe8s6FU9xaL0QJhVqZBLRy88JVVVy/N3br2ZouEv4RWCnjMv+SIPC3ORGWc6H/EESw1DEAzgegFtb3Sa1BmNe2MZJdiVdf/jC6E9CK4Dc68A6UZPIU3I0wUqgkama+8qjLPKLwMLug="
+    acl: public_read
+    bucket: nerabus
+    local_dir: dist
+    upload-dir: smi/releases
+    file_glob: true
+    file: "*"
+    skip_cleanup: true
+    on:
+      tags: true
+
 
 branches:
   only:
