@@ -138,7 +138,7 @@ module {{.ModuleName}} (
 
   // Specify system level signals.
   input          clk,
-  input          srst
+  input          reset
 );
 {{template "smiMemBusConnectionWireList" .SmiMemBusWireConns}}
 // Concatenated SMI flit vectors. {{range .SmiMemBusClientConns}}
@@ -197,10 +197,9 @@ smiAxiMemBusAdaptor #(6, {{.AxiBusIdWidth}}, 33) axiBusAdaptor (
   .axiBResp     (m_axi_gmem_bresp),
 
   // Connect system level signals.
-  .axiReset     (srst),  // TODO: This should be passed in.
+  .axiReset     (reset),  // TODO: This should be passed in.
   .clk          (clk),
-  .srst         (srst)
-
+  .srst         (reset)
 );
 
 //
@@ -230,8 +229,7 @@ assign m_axi_gmem_wuser    = 1'b0;
 
   // Connect system level signals.
   .clk  (clk),
-  .srst (srst)
-
+  .srst (reset)
 );
 
 //
@@ -296,8 +294,7 @@ assign {{.SmiNetRespName}}Flit = { {{.SmiNetRespName}}Eofc, {{.SmiNetRespName}}D
 
   // Connect system level signals.
   .clk   (clk),
-  .reset (srst)
-
+  .reset (reset)
 );
 
 endmodule
