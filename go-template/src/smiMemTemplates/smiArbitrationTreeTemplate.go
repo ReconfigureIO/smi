@@ -93,7 +93,7 @@ func configureArbitrationTree(moduleName string, numClients uint) (arbitrationTr
 
 	} else if numClients == 1 {
 		// For a single client, just implement scaling from the inputs to outputs.
-		clientConn := smiMemBusConnectionConfig{"smiMemClientReq", "smiMemClientResp", 8}
+		clientConn := smiMemBusConnectionConfig{"smiMemClientReq0", "smiMemClientResp0", 8}
 		serverConn := smiMemBusConnectionConfig{"smiMemServerReq", "smiMemServerResp", 64}
 		arbitrationTree.SmiMemBusClientConns = []smiMemBusConnectionConfig{clientConn}
 		arbitrationTree.SmiMemBusServerConn = []smiMemBusConnectionConfig{serverConn}
