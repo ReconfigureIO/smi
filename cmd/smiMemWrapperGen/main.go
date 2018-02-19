@@ -31,7 +31,7 @@ func main() {
 
 	// Build the arbitration component with the specified number of ports.
 	moduleName := fmt.Sprintf("smiMemArbitrationTreeX%d", *numMemPortsPtr)
-	fileName := "smi_mem_arbitration_tree.v"
+	fileName := fmt.Sprintf("%s.v", moduleName)
 	err := smiMemTemplates.CreateArbitrationTree(fileName, moduleName, *numMemPortsPtr)
 	if err != nil {
 		panic(err)
@@ -39,7 +39,7 @@ func main() {
 
 	// Build the wrapper component with the specified number of ports.
 	moduleName = "teak__action__top__gmem"
-	fileName = "teak_action_wrapper.v"
+	fileName = fmt.Sprintf("%s.v", moduleName)
 	err = smiMemTemplates.CreateSmiSdaKernelAdaptor(fileName, moduleName, *numMemPortsPtr)
 	if err != nil {
 		panic(err)
