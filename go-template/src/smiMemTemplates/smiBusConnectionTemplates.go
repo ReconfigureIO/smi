@@ -27,6 +27,15 @@ type smiMemBusConnectionConfig struct {
 }
 
 //
+// Defines the template configuration options for a direct assignment between
+// SMI memory bus signals.
+//
+type smiMemBusAssignmentConfig struct {
+	SmiMemBusClientConn smiMemBusConnectionConfig // Single client side connections.
+	SmiMemBusServerConn smiMemBusConnectionConfig // Single server side connection.
+}
+
+//
 // Defines the template configuration options for an SMI memory bus scaler
 // assembly.
 //
@@ -151,6 +160,24 @@ var smiMemBusConnectionPortLinkTemplate = `` +
   {{template "smiReqBusConnectionPortLink" .}}
   {{template "smiRespBusConnectionPortLink" .}}
 {{end}}{{end}}{{end}}`
+
+//
+// Defines the template for implementing direct SMI memory bus assignments.
+//
+var smiMemBusAssignmentTemplate = `
+{{define "smiMemBusAssignment"}}
+// Directly map {{.SmiMemBusClientConn.SmiNetReqName}} -> {{.SmiMemBusServerConn.SmiNetReqName}}
+assign {{.SmiMemBusServerConn.SmiNetReqName}}Ready = {{.SmiMemBusClientConn.SmiNetReqName}}Ready;
+assign {{.SmiMemBusServerConn.SmiNetReqName}}Eofc = {{.SmiMemBusClientConn.SmiNetReqName}}Eofc;
+assign {{.SmiMemBusServerConn.SmiNetReqName}}Data = {{.SmiMemBusClientConn.SmiNetReqName}}Data;
+assign {{.SmiMemBusClientConn.SmiNetReqName}}Stop = {{.SmiMemBusServerConn.SmiNetReqName}}Stop;
+
+// Directly map {{.SmiMemBusServerConn.SmiNetRespName}} -> {{.SmiMemBusClientConn.SmiNetRespName}}
+assign {{.SmiMemBusClientConn.SmiNetRespName}}Ready = {{.SmiMemBusServerConn.SmiNetRespName}}Ready;
+assign {{.SmiMemBusClientConn.SmiNetRespName}}Eofc = {{.SmiMemBusServerConn.SmiNetRespName}}Eofc;
+assign {{.SmiMemBusClientConn.SmiNetRespName}}Data = {{.SmiMemBusServerConn.SmiNetRespName}}Data;
+assign {{.SmiMemBusServerConn.SmiNetRespName}}Stop = {{.SmiMemBusClientConn.SmiNetRespName}}Stop;
+{{end}}`
 
 //
 // Defines the template for instantiating SMI memory bus width scaling modules.

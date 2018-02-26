@@ -22,6 +22,8 @@
 package smiMemTemplates
 
 import (
+	"errors"
+	"fmt"
 	"os"
 )
 
@@ -29,16 +31,28 @@ import (
 // CreateArbitrationTree generates an SMI memory arbitration tree module for the
 // number of SMI client endpoints specified by the 'numClients' parameter. The
 // generated code incorporates bus width scaling such that the client side flits
-// are 64 bits wide and the server side flits are 512 bits wide. Writes the
-// module source code to the Verilog source file specified by the 'fileName'
-// parameter and using the Verilog module name specified by the 'moduleName'
-// parameter. Returns an error item which will be set to 'nil' on successful
-// completion.
+// are 64 bits wide and the server side flit widths are scaled up as specified
+// by the 'scalingFactor' parameter. Scaling factors of 1, 2, 4 and 8 are
+// supported, giving server side flit widths of 64, 128, 256 and 512 bits.
+// This writes the module source code to the Verilog source file specified by
+// the 'fileName' parameter and using the Verilog module name specified by the
+// 'moduleName' parameter. Returns an error item which will be set to 'nil' on
+// successful completion.
 //
-func CreateArbitrationTree(fileName string, moduleName string, numClients uint) error {
+func CreateArbitrationTree(fileName string, moduleName string, numClients uint,
+	scalingFactor uint) error {
+
 	var outFile *os.File
 	var config arbitrationTreeConfig
 	var err error
+
+	// Check for valid scaling factor.
+	if (scalingFactor != 1) && (scalingFactor != 2) &&
+		(scalingFactor != 4) && (scalingFactor != 8) {
+		err = errors.New(fmt.Sprintf(
+			"Invalid bus scaling (%d) for arbitration tree", scalingFactor))
+		return err
+	}
 
 	// Attempt to open the specified file for output.
 	outFile, err = os.Create(fileName)
@@ -48,7 +62,7 @@ func CreateArbitrationTree(fileName string, moduleName string, numClients uint) 
 	defer outFile.Close()
 
 	// Set up the template configuration.
-	config, err = configureArbitrationTree(moduleName, numClients)
+	config, err = configureArbitrationTree(moduleName, numClients, scalingFactor)
 	if err != nil {
 		return err
 	}
@@ -63,13 +77,25 @@ func CreateArbitrationTree(fileName string, moduleName string, numClients uint) 
 // source file specified by the 'fileName' parameter using the Verilog module
 // name specified by the 'moduleName' parameter. The wrapper supports the number
 // of independent SMI memory access ports specified by the 'numClients'
-// parameter. Returns an error item which will be set to 'nil' on successful
-// completion.
+// parameter and the internal bus scaling specfied by the 'scalingFactor'
+// parameter. Scaling factors of 1, 2, 4 and 8 are supported, giving AXI data
+// widths of 64, 128, 256 and 512 bits. Returns an error item which will be set
+// to 'nil' on successful completion.
 //
-func CreateSmiSdaKernelAdaptor(fileName string, moduleName string, numClients uint) error {
+func CreateSmiSdaKernelAdaptor(fileName string, moduleName string,
+	numClients uint, scalingFactor uint) error {
+
 	var outFile *os.File
 	var config smiSdaKernelAdaptorConfig
 	var err error
+
+	// Check for valid scaling factor.
+	if (scalingFactor != 1) && (scalingFactor != 2) &&
+		(scalingFactor != 4) && (scalingFactor != 8) {
+		err = errors.New(fmt.Sprintf(
+			"Invalid bus scaling (%d) for kernel adaptor", scalingFactor))
+		return err
+	}
 
 	// Attempt to open the specified file for output.
 	outFile, err = os.Create(fileName)
@@ -79,7 +105,7 @@ func CreateSmiSdaKernelAdaptor(fileName string, moduleName string, numClients ui
 	defer outFile.Close()
 
 	// Set up the template configuration.
-	config, err = configureSmiSdaKernelAdaptor(moduleName, numClients)
+	config, err = configureSmiSdaKernelAdaptor(moduleName, numClients, scalingFactor)
 	if err != nil {
 		return err
 	}

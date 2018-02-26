@@ -24,15 +24,17 @@ import (
 
 func main() {
 
-	// We pass a single parameter which is the number of SMI endpoints to
-	// generate code for.
+	// We pass two parameters. One is the number of SMI endpoints to
+	// generate code for, the other is the data bus scaling factor.
 	numMemPortsPtr := flag.Uint("numMemPorts", 1, "the number of SMI memory ports")
+	scalingFactorPtr := flag.Uint("scalingFactor", 1, "the bus width scaling factor (1, 2, 4 or 8)")
 	flag.Parse()
 
 	// Build the arbitration component with the specified number of ports.
-	moduleName := fmt.Sprintf("smiMemArbitrationTreeX%d", *numMemPortsPtr)
+	moduleName := fmt.Sprintf("smiMemArbitrationTreeX%dS%d", *numMemPortsPtr, *scalingFactorPtr)
 	fileName := fmt.Sprintf("%s.v", moduleName)
-	err := smiMemTemplates.CreateArbitrationTree(fileName, moduleName, *numMemPortsPtr)
+	err := smiMemTemplates.CreateArbitrationTree(
+		fileName, moduleName, *numMemPortsPtr, *scalingFactorPtr)
 	if err != nil {
 		panic(err)
 	}
@@ -40,7 +42,8 @@ func main() {
 	// Build the wrapper component with the specified number of ports.
 	moduleName = "teak__action__top__gmem"
 	fileName = fmt.Sprintf("%s.v", moduleName)
-	err = smiMemTemplates.CreateSmiSdaKernelAdaptor(fileName, moduleName, *numMemPortsPtr)
+	err = smiMemTemplates.CreateSmiSdaKernelAdaptor(
+		fileName, moduleName, *numMemPortsPtr, *scalingFactorPtr)
 	if err != nil {
 		panic(err)
 	}
