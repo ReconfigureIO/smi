@@ -30,6 +30,8 @@ type smiSdaKernelAdaptorConfig struct {
 	ModuleName            string                      // Name of the kernel adaptor module.
 	ArbitrationModuleName string                      // Name of the arbitration tree module.
 	KernelModuleName      string                      // Name of the SMI kernel module.
+	AxiByteIndexSize      uint                        // Size of AXI data byte index values.
+	AxiBusDataWidth       uint                        // Width of AXI data bus in bytes.
 	AxiBusIdWidth         uint                        // Width of AXI ID signal.
 	SmiMemBusClientConns  []smiMemBusConnectionConfig // List of client side connections.
 	SmiMemBusServerConn   []smiMemBusConnectionConfig // Single server side connection.
@@ -90,8 +92,8 @@ module {{.ModuleName}} (
   input          m_axi_gmem_awready,
 
   // Specifies the AXI master write data signals.
-  output [511:0] m_axi_gmem_wdata,
-  output [ 63:0] m_axi_gmem_wstrb,
+  output {{makeBitSliceFromScaledWidth .AxiBusDataWidth 8}} m_axi_gmem_wdata,
+  output {{makeBitSliceFromScaledWidth .AxiBusDataWidth 1}} m_axi_gmem_wstrb,
   output         m_axi_gmem_wlast,
   output [  0:0] m_axi_gmem_wuser,
   output         m_axi_gmem_wvalid,
@@ -120,7 +122,7 @@ module {{.ModuleName}} (
   input          m_axi_gmem_arready,
 
   // Specifies the AXI master read data signals.
-  input  [511:0] m_axi_gmem_rdata,
+  input  {{makeBitSliceFromScaledWidth .AxiBusDataWidth 8}} m_axi_gmem_rdata,
   input  [  1:0] m_axi_gmem_rresp,
   input          m_axi_gmem_rlast,
   input  [  0:0] m_axi_gmem_ruser,
@@ -146,9 +148,9 @@ wire [ 71:0] {{.SmiNetReqName}}Flit;
 wire [ 71:0] {{.SmiNetRespName}}Flit;{{end}}
 
 //
-// Instantiate the 512-bit SMI/AXI memory controller adaptor.
+// Instantiate the SMI/AXI memory controller adaptor.
 //
-smiAxiMemBusAdaptor #(6, {{.AxiBusIdWidth}}, 33) axiBusAdaptor (
+smiAxiMemBusAdaptor #({{.AxiByteIndexSize}}, {{.AxiBusIdWidth}}, 33) axiBusAdaptor (
   {{with $wire := index .SmiMemBusServerConn 0}}
   // Connect SMI main memory bus.
   .smiReqReady  ({{$wire.SmiNetReqName}}Ready),
@@ -324,21 +326,29 @@ func getSmiSdaKernelAdaptorTemplate() *template.Template {
 // Generates an SMI SDaccel kernel adaptor configuration given the supplied
 // parameters.
 //
-func configureSmiSdaKernelAdaptor(moduleName string, numPorts uint) (smiSdaKernelAdaptorConfig, error) {
+func configureSmiSdaKernelAdaptor(moduleName string, numPorts uint,
+	scalingFactor uint) (smiSdaKernelAdaptorConfig, error) {
+
 	var smiSdaKernelAdaptor = smiSdaKernelAdaptorConfig{}
 	smiSdaKernelAdaptor.ModuleName = moduleName
 	smiSdaKernelAdaptor.ArbitrationModuleName =
-		fmt.Sprintf("smiMemArbitrationTreeX%d", numPorts)
+		fmt.Sprintf("smiMemArbitrationTreeX%dS%d", numPorts, scalingFactor)
 	smiSdaKernelAdaptor.KernelModuleName =
 		fmt.Sprintf("teak__action__top__smi__x%d", numPorts)
+	smiSdaKernelAdaptor.AxiBusDataWidth = scalingFactor * 8
 	smiSdaKernelAdaptor.AxiBusIdWidth = 1
+
+	smiSdaKernelAdaptor.AxiByteIndexSize = 2
+	for i := scalingFactor; i != 0; i = i >> 1 {
+		smiSdaKernelAdaptor.AxiByteIndexSize += 1
+	}
 
 	// Add the common connection signals.
 	smiSdaKernelAdaptor.SmiMemBusClientConns = make([]smiMemBusConnectionConfig, 0)
 	smiSdaKernelAdaptor.SmiMemBusServerConn = make([]smiMemBusConnectionConfig, 1)
 	smiSdaKernelAdaptor.SmiMemBusWireConns = make([]smiMemBusConnectionConfig, 1)
 	serverConn := smiMemBusConnectionConfig{
-		"smiMemServerReq", "smiMemServerResp", 64}
+		"smiMemServerReq", "smiMemServerResp", scalingFactor * 8}
 	smiSdaKernelAdaptor.SmiMemBusServerConn[0] = serverConn
 	smiSdaKernelAdaptor.SmiMemBusWireConns[0] = serverConn
 
