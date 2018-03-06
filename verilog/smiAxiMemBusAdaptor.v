@@ -52,7 +52,7 @@ parameter DataIndexSize = 3;
 // Specifies the width of the AXI ID signal. This also determines the number
 // of transactions which may be 'in flight' through the adaptor at any given
 // time.
-parameter AxiIdWidth = 4;
+parameter AxiIdWidth = 1;
 
 // Specifies the internal FIFO depths (between 3 and 128 entries).
 parameter FifoSize = 16;
