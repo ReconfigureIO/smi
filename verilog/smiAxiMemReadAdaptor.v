@@ -58,7 +58,7 @@ parameter FifoSize = 16;
 parameter DataWidth = (1 << DataIndexSize) * 8;
 
 // Derives the maximum number of 'in flight' read transactions.
-parameter MaxReadIds = (1 << AxiIdWidth);
+parameter MaxReadIds = 1; // Max (1 << AxiIdWidth)
 
 // Specifies the state space for the read request dispatch state machine.
 parameter [1:0]

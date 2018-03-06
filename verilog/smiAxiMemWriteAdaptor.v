@@ -58,7 +58,7 @@ parameter FifoSize = 16;
 parameter DataWidth = (1 << DataIndexSize) * 8;
 
 // Derives the maximum number of 'in flight' write transactions.
-parameter MaxWriteIds = (1 << AxiIdWidth);
+parameter MaxWriteIds = 1; // Max (1 << AxiIdWidth)
 
 // Specifies the state space for the write request dispatch state machine.
 parameter [1:0]
