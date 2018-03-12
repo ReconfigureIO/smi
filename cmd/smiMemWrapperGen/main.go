@@ -17,6 +17,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/ReconfigureIO/smi/go-template/src/smiMemTemplates"
@@ -25,16 +26,32 @@ import (
 func main() {
 
 	// We pass two parameters. One is the number of SMI endpoints to
-	// generate code for, the other is the data bus scaling factor.
+	// generate code for, the other is the output AXI data bus width.
 	numMemPortsPtr := flag.Uint("numMemPorts", 1, "the number of SMI memory ports")
-	scalingFactorPtr := flag.Uint("scalingFactor", 1, "the bus width scaling factor (1, 2, 4 or 8)")
+	axiBusWidthPtr := flag.Uint("axiBusWidth", 64, "the width of the AXI data bus (64, 128, 256 or 512)")
 	flag.Parse()
 
+	// Convert the AXI bus width the bus width scaling factor.
+	scalingFactor := uint(0)
+	switch *axiBusWidthPtr {
+	case 64:
+		scalingFactor = 1
+	case 128:
+		scalingFactor = 2
+	case 256:
+		scalingFactor = 4
+	case 512:
+		scalingFactor = 8
+	default:
+		panic(errors.New(fmt.Sprintf(
+			"Invalid AXI bus width (%d) for kernel adaptor", *axiBusWidthPtr)))
+	}
+
 	// Build the arbitration component with the specified number of ports.
-	moduleName := fmt.Sprintf("smiMemArbitrationTreeX%dS%d", *numMemPortsPtr, *scalingFactorPtr)
+	moduleName := fmt.Sprintf("smiMemArbitrationTreeX%dS%d", *numMemPortsPtr, scalingFactor)
 	fileName := fmt.Sprintf("%s.v", moduleName)
 	err := smiMemTemplates.CreateArbitrationTree(
-		fileName, moduleName, *numMemPortsPtr, *scalingFactorPtr)
+		fileName, moduleName, *numMemPortsPtr, scalingFactor)
 	if err != nil {
 		panic(err)
 	}
@@ -43,7 +60,7 @@ func main() {
 	moduleName = "teak__action__top__gmem"
 	fileName = fmt.Sprintf("%s.v", moduleName)
 	err = smiMemTemplates.CreateSmiSdaKernelAdaptor(
-		fileName, moduleName, *numMemPortsPtr, *scalingFactorPtr)
+		fileName, moduleName, *numMemPortsPtr, scalingFactor)
 	if err != nil {
 		panic(err)
 	}
