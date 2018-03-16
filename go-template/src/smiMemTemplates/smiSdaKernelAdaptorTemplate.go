@@ -94,6 +94,7 @@ module {{.ModuleName}} (
   // Specifies the AXI master write data signals.
   output {{makeBitSliceFromScaledWidth .AxiBusDataWidth 8}} m_axi_gmem_wdata,
   output {{makeBitSliceFromScaledWidth .AxiBusDataWidth 1}} m_axi_gmem_wstrb,
+  output {{makeBitSliceFromScaledWidth .AxiBusIdWidth 1}} m_axi_gmem_wid,
   output         m_axi_gmem_wlast,
   output [  0:0] m_axi_gmem_wuser,
   output         m_axi_gmem_wvalid,
@@ -189,6 +190,7 @@ smiAxiMemBusAdaptor #({{.AxiByteIndexSize}}, {{.AxiBusIdWidth}}, 33) axiBusAdapt
 
   .axiWValid    (m_axi_gmem_wvalid),
   .axiWReady    (m_axi_gmem_wready),
+  .axiWId       (m_axi_gmem_wid),
   .axiWData     (m_axi_gmem_wdata),
   .axiWStrb     (m_axi_gmem_wstrb),
   .axiWLast     (m_axi_gmem_wlast),
