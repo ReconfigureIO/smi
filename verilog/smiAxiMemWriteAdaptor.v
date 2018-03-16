@@ -38,8 +38,9 @@
 module smiAxiMemWriteAdaptor
   (smiReqReady, smiReqEofc, smiReqData, smiReqStop, smiRespReady, smiRespEofc,
   smiRespData, smiRespStop, axiAWValid, axiAWReady, axiAWId, axiAWAddr,
-  axiAWLen, axiAWSize, axiAWCache, axiWValid, axiWReady, axiWData, axiWStrb,
-  axiWLast, axiBValid, axiBReady, axiBId, axiBResp, axiReset, clk, srst);
+  axiAWLen, axiAWSize, axiAWCache, axiWValid, axiWReady, axiWId, axiWData,
+  axiWStrb, axiWLast, axiBValid, axiBReady, axiBId, axiBResp, axiReset, clk,
+  srst);
 
 // Specifies the number of bits required to address individual bytes within the
 // AXI data signal. This also determines the width of the data signal. Valid
@@ -99,6 +100,7 @@ output [3:0]            axiAWCache;
 
 output                   axiWValid;
 input                    axiWReady;
+output [AxiIdWidth-1:0]  axiWId;
 output [DataWidth-1:0]   axiWData;
 output [DataWidth/8-1:0] axiWStrb;
 output                   axiWLast;
@@ -150,10 +152,13 @@ reg [15:0] pCacheSmiTags [MaxWriteIds-1:0];
 reg [15:0] paramSmiTag;
 
 // Specifies the signals used for the write request dispatch state machine.
-reg [1:0] dispatchState_d;
-reg [7:0] byteOffset_d;
-reg [1:0] dispatchState_q;
-reg [7:0] byteOffset_q;
+reg [1:0]            dispatchState_d;
+reg [7:0]            byteOffset_d;
+reg [AxiIdWidth-1:0] byteOffsetId_d;
+
+reg [1:0]            dispatchState_q;
+reg [7:0]            byteOffset_q;
+reg [AxiIdWidth-1:0] byteOffsetId_q;
 
 // Specifies the signals used for the read response processing state machine.
 reg [1:0]            responseState_d;
@@ -179,6 +184,7 @@ wire         byteOffsetStop;
 // Specifies the signals used for the AXI write buffer.
 wire                   axiWBufValid;
 wire                   axiWBufStop;
+wire [AxiIdWidth-1:0]  axiWBufId;
 wire [DataWidth-1:0]   axiWBufData;
 wire [DataWidth/8-1:0] axiWBufStrb;
 wire                   axiWBufLast;
@@ -272,13 +278,14 @@ begin
 end
 
 // Combinatorial logic for write request dispatch state machine.
-always @(dispatchState_q, byteOffset_q, headerReady, headerData,
-  writeIdFifoEmpty_q, axiAWBufStop, byteOffsetStop)
+always @(dispatchState_q, byteOffset_q, byteOffsetId_q, headerReady, headerData,
+  writeIdFifoEmpty_q, writeIdFifoOutput, axiAWBufStop, byteOffsetStop)
 begin
 
   // Hold current state by default.
   dispatchState_d = dispatchState_q;
   byteOffset_d = byteOffset_q;
+  byteOffsetId_d = byteOffsetId_q;
   writeIdFifoPop = 1'b0;
   axiAWBufValid = 1'b0;
   headerStop = 1'b1;
@@ -294,6 +301,7 @@ begin
       axiAWBufValid = 1'b1;
       pCacheWrite = 1'b1;
       byteOffset_d = headerData [39:32];
+      byteOffsetId_d = writeIdFifoOutput;
       if (~axiAWBufStop)
       begin
         dispatchState_d = RequestDataAlign;
@@ -333,7 +341,8 @@ end
 
 always @(posedge clk)
 begin
-  byteOffset_q <= byteOffset_d;
+  byteOffset_q   <= byteOffset_d;
+  byteOffsetId_q <= byteOffsetId_d;
 end
 
 // To calculate the AXI burst length we need to take into account the number
@@ -500,14 +509,14 @@ generate
 endgenerate
 
 // Perform byte lane alignment on the data frame.
-smiByteDataAlign #(DataWidth/8) byteAlignment
-  (byteOffsetReady, byteOffset_q, byteOffsetStop, dataFrameReady, dataFrameEofc,
-  dataFrameData, dataFrameStop, axiWBufValid, axiWBufData, axiWBufStrb, axiWBufLast,
-  axiWBufStop, clk, srst);
+smiByteDataAlign #(DataWidth/8, AxiIdWidth) byteAlignment
+  (byteOffsetReady, byteOffset_q, byteOffsetId_q, byteOffsetStop, dataFrameReady,
+  dataFrameEofc, dataFrameData, dataFrameStop, axiWBufValid, axiWBufData,
+  axiWBufStrb, axiWBufLast, axiWBufId, axiWBufStop, clk, srst);
 
 // Add resettable AXI output buffer on all write data signals.
-smiAxiOutputBuffer #(DataWidth+DataWidth/8+1) axiWriteBuffer
-  (axiWBufValid, {axiWBufLast, axiWBufStrb, axiWBufData}, axiWBufStop, axiWValid,
-  {axiWLast, axiWStrb, axiWData}, axiWReady, clk, axiReset);
+smiAxiOutputBuffer #(DataWidth+DataWidth/8+AxiIdWidth+1) axiWriteBuffer
+  (axiWBufValid, {axiWBufId, axiWBufLast, axiWBufStrb, axiWBufData}, axiWBufStop,
+  axiWValid, {axiWId, axiWLast, axiWStrb, axiWData}, axiWReady, clk, axiReset);
 
 endmodule

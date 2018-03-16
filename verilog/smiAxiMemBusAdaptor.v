@@ -41,8 +41,8 @@ module smiAxiMemBusAdaptor
   smiRespData, smiRespStop, axiARValid, axiARReady, axiARId, axiARAddr,
   axiARLen, axiARSize, axiARCache, axiRValid, axiRReady, axiRId, axiRData,
   axiRResp, axiRLast, axiAWValid, axiAWReady, axiAWId, axiAWAddr, axiAWLen,
-  axiAWSize, axiAWCache, axiWValid, axiWReady, axiWData, axiWStrb, axiWLast,
-  axiBValid, axiBReady, axiBId, axiBResp, axiReset, clk, srst);
+  axiAWSize, axiAWCache, axiWValid, axiWReady, axiWId, axiWData, axiWStrb,
+  axiWLast, axiBValid, axiBReady, axiBId, axiBResp, axiReset, clk, srst);
 
 // Specifies the number of bits required to address individual bytes within the
 // AXI data signal. This also determines the width of the data signal. Valid
@@ -108,6 +108,7 @@ output [3:0]            axiAWCache;
 // Specifies the 'downstream' AXI write data ports.
 output                   axiWValid;
 input                    axiWReady;
+output [AxiIdWidth-1:0]  axiWId;
 output [FlitWidth*8-1:0] axiWData;
 output [FlitWidth-1:0]   axiWStrb;
 output                   axiWLast;
@@ -163,7 +164,8 @@ smiAxiMemReadAdaptor #(DataIndexSize, AxiIdWidth, FifoSize) readAdaptor
 smiAxiMemWriteAdaptor #(DataIndexSize, AxiIdWidth, FifoSize) writeAdaptor
   (writeReqReady, writeReqEofc, writeReqData, writeReqStop, writeRespReady,
   writeRespEofc, writeRespData, writeRespStop, axiAWValid, axiAWReady, axiAWId,
-  axiAWAddr, axiAWLen, axiAWSize, axiAWCache, axiWValid, axiWReady, axiWData,
-  axiWStrb, axiWLast, axiBValid, axiBReady, axiBId, axiBResp, axiReset, clk, srst);
+  axiAWAddr, axiAWLen, axiAWSize, axiAWCache, axiWValid, axiWReady, axiWId,
+  axiWData, axiWStrb, axiWLast, axiBValid, axiBReady, axiBId, axiBResp,
+  axiReset, clk, srst);
 
 endmodule

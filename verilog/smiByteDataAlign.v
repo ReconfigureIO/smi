@@ -24,22 +24,27 @@
 `timescale 1ns/1ps
 
 module smiByteDataAlign
-  (setupReady, byteOffset, setupStop, smiInReady, smiInEofc, smiInData,
+  (setupReady, byteOffset, setupAux, setupStop, smiInReady, smiInEofc, smiInData,
   smiInStop, alignedOutReady, alignedOutData, alignedOutStrobes, alignedOutLast,
-  alignedOutStop, clk, srst);
+  alignedOutAux, alignedOutStop, clk, srst);
 
 // Specifies the width of the flit data input and output ports as an integer
 // power of two number of bytes.
 parameter FlitWidth = 16;
+
+// Specifies the width of the auxiliary datapath which contains additional
+// output signalling that is applicable to the whole frame.
+parameter AuxDataWidth = 1;
 
 // Specifies the clock and active high synchronous reset signals.
 input clk;
 input srst;
 
 // Specifies the address offet input signals.
-input       setupReady;
-input [7:0] byteOffset;
-output      setupStop;
+input                    setupReady;
+input [7:0]              byteOffset;
+input [AuxDataWidth-1:0] setupAux;
+output                   setupStop;
 
 // Specifies the SMI flit input signals.
 input                   smiInReady;
@@ -48,16 +53,18 @@ input [FlitWidth*8-1:0] smiInData;
 output                  smiInStop;
 
 // Specifies the byte aligned output data signals.
-output                   alignedOutReady;
-output [FlitWidth*8-1:0] alignedOutData;
-output [FlitWidth-1:0]   alignedOutStrobes;
-output                   alignedOutLast;
-input                    alignedOutStop;
+output                    alignedOutReady;
+output [FlitWidth*8-1:0]  alignedOutData;
+output [FlitWidth-1:0]    alignedOutStrobes;
+output                    alignedOutLast;
+output [AuxDataWidth-1:0] alignedOutAux;
+input                     alignedOutStop;
 
 // Specifies the address offset and SMI flit input register signals.
-reg       setupReady_q;
-reg [7:0] byteOffset_q;
-reg       setupHalt;
+reg                    setupReady_q;
+reg [7:0]              byteOffset_q;
+reg [AuxDataWidth-1:0] setupAux_q;
+reg                    setupHalt;
 
 reg                   smiInReady_q;
 reg [7:0]             smiInEofc_q;
@@ -71,15 +78,17 @@ parameter [1:0]
   AlignAddTail = 2;
 
 // Specifies the header injection state machine signals.
-reg [1:0]                   alignState_d;
-reg [(FlitWidth-1)*8-1:0]   lastFlitData_d;
-reg [FlitWidth-2:0]         lastFlitStrobes_d;
-reg [7:0]                   shiftOffset_d;
+reg [1:0]                 alignState_d;
+reg [(FlitWidth-1)*8-1:0] lastFlitData_d;
+reg [FlitWidth-2:0]       lastFlitStrobes_d;
+reg [7:0]                 shiftOffset_d;
+reg [AuxDataWidth-1:0]    shiftAux_d;
 
-reg [1:0]                   alignState_q;
-reg [(FlitWidth-1)*8-1:0]   lastFlitData_q;
-reg [FlitWidth-2:0]         lastFlitStrobes_q;
-reg [7:0]                   shiftOffset_q;
+reg [1:0]                 alignState_q;
+reg [(FlitWidth-1)*8-1:0] lastFlitData_q;
+reg [FlitWidth-2:0]       lastFlitStrobes_q;
+reg [7:0]                 shiftOffset_q;
+reg [AuxDataWidth-1:0]    shiftAux_q;
 
 // Specifies the barrel shifter input signals.
 reg                 shiftInValid_d;
@@ -92,6 +101,7 @@ reg                         shiftInLast_q;
 reg [(2*FlitWidth-1)*8-1:0] shiftInData_q;
 reg [2*FlitWidth-2:0]       shiftInStrobes_q;
 reg [7:0]                   shiftInAmount_q;
+reg [AuxDataWidth-1:0]      shiftInAux_q;
 
 // Specifies the barrel shifter pipeline signals.
 reg [(2*FlitWidth-1)*8-1:0] shiftP1Data_d;
@@ -102,6 +112,7 @@ reg                         shiftP1Last_q;
 reg [(2*FlitWidth-1)*8-1:0] shiftP1Data_q;
 reg [2*FlitWidth-2:0]       shiftP1Strobes_q;
 reg [7:0]                   shiftP1Amount_q;
+reg [AuxDataWidth-1:0]      shiftP1Aux_q;
 
 reg [(2*FlitWidth-1)*8-1:0] shiftP2Data_d;
 reg [2*FlitWidth-2:0]       shiftP2Strobes_d;
@@ -111,17 +122,16 @@ reg                         shiftP2Last_q;
 reg [(2*FlitWidth-1)*8-1:0] shiftP2Data_q;
 reg [2*FlitWidth-2:0]       shiftP2Strobes_q;
 reg [7:0]                   shiftP2Amount_q;
+reg [AuxDataWidth-1:0]      shiftP2Aux_q;
 
 reg [(2*FlitWidth-1)*8-1:0] shiftP3Data_d;
 reg [2*FlitWidth-2:0]       shiftP3Strobes_d;
 
-reg                   shiftP3Valid_q;
-reg                   shiftP3Last_q;
-reg [FlitWidth*8-1:0] shiftP3Data_q;
-reg [FlitWidth-1:0]   shiftP3Strobes_q;
-
-// Combined output vector.
-wire [FlitWidth*9:0] alignedOutVec;
+reg                    shiftP3Valid_q;
+reg                    shiftP3Last_q;
+reg [FlitWidth*8-1:0]  shiftP3Data_q;
+reg [FlitWidth-1:0]    shiftP3Strobes_q;
+reg [AuxDataWidth-1:0] shiftP3Aux_q;
 
 // Miscellaneous signals.
 integer i;
@@ -149,6 +159,7 @@ begin
   if (~(setupReady_q & setupHalt))
   begin
     byteOffset_q <= byteOffset & (FlitWidth [7:0] - 8'b1);
+    setupAux_q <= setupAux;
   end
   if (~(smiInReady_q & smiInHalt))
   begin
@@ -162,8 +173,8 @@ assign smiInStop = smiInReady_q & smiInHalt;
 
 // Implement combinatorial logic for byte alignment.
 always @(alignState_q, lastFlitData_q, lastFlitStrobes_q, shiftOffset_q,
-  setupReady_q, byteOffset_q, smiInReady_q, smiInEofc_q, smiInData_q,
-  barrelShiftStop)
+  shiftAux_q, setupReady_q, byteOffset_q, setupAux_q, smiInReady_q, smiInEofc_q,
+  smiInData_q, barrelShiftStop)
 begin
 
   // Hold current state by default.
@@ -171,6 +182,7 @@ begin
   lastFlitData_d = lastFlitData_q;
   lastFlitStrobes_d = lastFlitStrobes_q;
   shiftOffset_d = shiftOffset_q;
+  shiftAux_d = shiftAux_q;
   shiftInValid_d = 1'b0;
   shiftInLast_d = 1'b0;
 
@@ -233,6 +245,7 @@ begin
       for (i = 0; i < FlitWidth-1; i = i + 1)
         lastFlitStrobes_d [i] = 1'b0;
       shiftOffset_d = byteOffset_q;
+      shiftAux_d = setupAux_q;
       setupHalt = 1'b0;
       if (setupReady_q)
         alignState_d = AlignCopyFrame;
@@ -256,6 +269,7 @@ begin
   lastFlitData_q    <= lastFlitData_d;
   lastFlitStrobes_q <= lastFlitStrobes_d;
   shiftOffset_q     <= shiftOffset_d;
+  shiftAux_q        <= shiftAux_d;
 end
 
 // Implement resettable barrel shifter input control registers.
@@ -284,6 +298,7 @@ begin
   begin
     shiftInLast_q    <= shiftInLast_d;
     shiftInAmount_q  <= shiftOffset_q;
+    shiftInAux_q     <= shiftAux_q;
     shiftInData_q    <= { smiInData_q, lastFlitData_q };
     shiftInStrobes_q <= { shiftInStrobes_d, lastFlitStrobes_q };
   end
@@ -322,6 +337,7 @@ begin
   begin
     shiftP1Last_q    <= shiftInLast_q;
     shiftP1Amount_q  <= shiftInAmount_q;
+    shiftP1Aux_q     <= shiftInAux_q;
     shiftP1Data_q    <= shiftP1Data_d;
     shiftP1Strobes_q <= shiftP1Strobes_d;
   end
@@ -360,6 +376,7 @@ begin
   begin
     shiftP2Last_q    <= shiftP1Last_q;
     shiftP2Amount_q  <= shiftP1Amount_q;
+    shiftP2Aux_q     <= shiftP1Aux_q;
     shiftP2Data_q    <= shiftP2Data_d;
     shiftP2Strobes_q <= shiftP2Strobes_d;
   end
@@ -406,19 +423,18 @@ begin
   if (~barrelShiftStop)
   begin
     shiftP3Last_q    <= shiftP2Last_q;
+    shiftP3Aux_q     <= shiftP2Aux_q;
     shiftP3Data_q    <= shiftP3Data_d [(2*FlitWidth-1)*8-1:(FlitWidth-1)*8];
     shiftP3Strobes_q <= shiftP3Strobes_d [2*FlitWidth-2:FlitWidth-1];
   end
 end
 
 // Implement double buffering on the output flits.
-smiSelfLinkDoubleBuffer #(FlitWidth*9+1) smiOutBuf
-  (shiftP3Valid_q, { shiftP3Last_q, shiftP3Strobes_q, shiftP3Data_q  },
-  barrelShiftStop, alignedOutReady, alignedOutVec, alignedOutStop, clk, srst);
-
-assign alignedOutLast = alignedOutVec [FlitWidth*9];
-assign alignedOutStrobes = alignedOutVec [FlitWidth*9-1:FlitWidth*8];
-assign alignedOutData = alignedOutVec [FlitWidth*8-1:0];
+smiSelfLinkDoubleBuffer #(FlitWidth*9+AuxDataWidth+1) smiOutBuf
+  (shiftP3Valid_q, {shiftP3Aux_q, shiftP3Last_q, shiftP3Strobes_q,
+  shiftP3Data_q}, barrelShiftStop, alignedOutReady, {alignedOutAux,
+  alignedOutLast, alignedOutStrobes, alignedOutData}, alignedOutStop,
+  clk, srst);
 
 endmodule
 
