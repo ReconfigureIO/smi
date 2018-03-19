@@ -113,3 +113,46 @@ func CreateSmiSdaKernelAdaptor(fileName string, moduleName string,
 	// Generate the Verilog file.
 	return executeSmiSdaKernelAdaptorTemplate(outFile, config)
 }
+
+//
+// CreateSmiFp1KernelAdaptor generates a configurable SMI kernel adaptor for the
+// Huawei FP1 build process. It writes the module source code to the Verilog
+// source file specified by the 'fileName' parameter using the Verilog module
+// name specified by the 'moduleName' parameter. The wrapper supports the number
+// of independent SMI memory access ports specified by the 'numClients'
+// parameter and the internal bus scaling specfied by the 'scalingFactor'
+// parameter. Scaling factors of 1, 2, 4 and 8 are supported, giving AXI data
+// widths of 64, 128, 256 and 512 bits. Returns an error item which will be set
+// to 'nil' on successful completion.
+//
+func CreateSmiFp1KernelAdaptor(fileName string, moduleName string,
+	numClients uint, scalingFactor uint) error {
+
+	var outFile *os.File
+	var config smiFp1KernelAdaptorConfig
+	var err error
+
+	// Check for valid scaling factor.
+	if (scalingFactor != 1) && (scalingFactor != 2) &&
+		(scalingFactor != 4) && (scalingFactor != 8) {
+		err = errors.New(fmt.Sprintf(
+			"Invalid bus scaling (%d) for kernel adaptor", scalingFactor))
+		return err
+	}
+
+	// Attempt to open the specified file for output.
+	outFile, err = os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer outFile.Close()
+
+	// Set up the template configuration.
+	config, err = configureSmiFp1KernelAdaptor(moduleName, numClients, scalingFactor)
+	if err != nil {
+		return err
+	}
+
+	// Generate the Verilog file.
+	return executeSmiFp1KernelAdaptorTemplate(outFile, config)
+}

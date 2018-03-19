@@ -27,8 +27,12 @@ func main() {
 
 	// We pass two parameters. One is the number of SMI endpoints to
 	// generate code for, the other is the output AXI data bus width.
-	numMemPortsPtr := flag.Uint("numMemPorts", 1, "the number of SMI memory ports")
-	axiBusWidthPtr := flag.Uint("axiBusWidth", 64, "the width of the AXI data bus (64, 128, 256 or 512)")
+	numMemPortsPtr := flag.Uint("numMemPorts", 1,
+		"the number of SMI memory ports")
+	axiBusWidthPtr := flag.Uint("axiBusWidth", 64,
+		"the width of the AXI data bus (64, 128, 256 or 512)")
+	targetPlatformPtr := flag.String("targetPlatform", "sdaccel",
+		"the target platform ('sdaccel' or 'huawei-fp1')")
 	flag.Parse()
 
 	// Convert the AXI bus width the bus width scaling factor.
@@ -57,10 +61,21 @@ func main() {
 	}
 
 	// Build the wrapper component with the specified number of ports.
-	moduleName = "teak__action__top__gmem"
-	fileName = fmt.Sprintf("%s.v", moduleName)
-	err = smiMemTemplates.CreateSmiSdaKernelAdaptor(
-		fileName, moduleName, *numMemPortsPtr, scalingFactor)
+	switch *targetPlatformPtr {
+	case "sdaccel":
+		moduleName = "teak__action__top__gmem"
+		fileName = fmt.Sprintf("%s.v", moduleName)
+		err = smiMemTemplates.CreateSmiSdaKernelAdaptor(
+			fileName, moduleName, *numMemPortsPtr, scalingFactor)
+	case "huawei-fp1":
+		moduleName = "fp1_teak_action_top_gmem"
+		fileName = fmt.Sprintf("%s.v", moduleName)
+		err = smiMemTemplates.CreateSmiFp1KernelAdaptor(
+			fileName, moduleName, *numMemPortsPtr, scalingFactor)
+	default:
+		err = errors.New(fmt.Sprintf(
+			"Invalid target platform (%s) for kernel adaptor", *targetPlatformPtr))
+	}
 	if err != nil {
 		panic(err)
 	}
