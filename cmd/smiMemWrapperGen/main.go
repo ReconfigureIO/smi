@@ -20,8 +20,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	// "github.com/ReconfigureIO/smi/go-template/src/smiMemTemplates"
-	"smiMemTemplates"
+	"github.com/ReconfigureIO/smi/go-template/src/smiMemTemplates"
 )
 
 func main() {
