@@ -63,15 +63,17 @@ func main() {
 	// Build the wrapper component with the specified number of ports.
 	switch *targetPlatformPtr {
 	case "sdaccel":
+		kernelName := fmt.Sprintf("teak__action__top__smi__x%d", *numMemPortsPtr)
 		moduleName = "teak__action__top__gmem"
 		fileName = fmt.Sprintf("%s.v", moduleName)
 		err = smiMemTemplates.CreateSmiSdaKernelAdaptor(
-			fileName, moduleName, *numMemPortsPtr, scalingFactor)
+			fileName, moduleName, kernelName, *numMemPortsPtr, scalingFactor)
 	case "huawei-fp1":
+		kernelName := "teak__main_x2e_Top"
 		moduleName = "fp1_teak_action_top_gmem"
 		fileName = fmt.Sprintf("%s.v", moduleName)
 		err = smiMemTemplates.CreateSmiFp1KernelAdaptor(
-			fileName, moduleName, *numMemPortsPtr, scalingFactor)
+			fileName, moduleName, kernelName, *numMemPortsPtr, scalingFactor)
 	default:
 		err = errors.New(fmt.Sprintf(
 			"Invalid target platform (%s) for kernel adaptor", *targetPlatformPtr))

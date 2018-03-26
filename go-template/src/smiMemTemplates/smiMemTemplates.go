@@ -83,7 +83,7 @@ func CreateArbitrationTree(fileName string, moduleName string, numClients uint,
 // to 'nil' on successful completion.
 //
 func CreateSmiSdaKernelAdaptor(fileName string, moduleName string,
-	numClients uint, scalingFactor uint) error {
+	kernelName string, numClients uint, scalingFactor uint) error {
 
 	var outFile *os.File
 	var config smiSdaKernelAdaptorConfig
@@ -105,7 +105,8 @@ func CreateSmiSdaKernelAdaptor(fileName string, moduleName string,
 	defer outFile.Close()
 
 	// Set up the template configuration.
-	config, err = configureSmiSdaKernelAdaptor(moduleName, numClients, scalingFactor)
+	config, err = configureSmiSdaKernelAdaptor(
+		moduleName, kernelName, numClients, scalingFactor)
 	if err != nil {
 		return err
 	}
@@ -126,7 +127,7 @@ func CreateSmiSdaKernelAdaptor(fileName string, moduleName string,
 // to 'nil' on successful completion.
 //
 func CreateSmiFp1KernelAdaptor(fileName string, moduleName string,
-	numClients uint, scalingFactor uint) error {
+	kernelName string, numClients uint, scalingFactor uint) error {
 
 	var outFile *os.File
 	var config smiFp1KernelAdaptorConfig
@@ -148,7 +149,8 @@ func CreateSmiFp1KernelAdaptor(fileName string, moduleName string,
 	defer outFile.Close()
 
 	// Set up the template configuration.
-	config, err = configureSmiFp1KernelAdaptor(moduleName, numClients, scalingFactor)
+	config, err = configureSmiFp1KernelAdaptor(
+		moduleName, kernelName, numClients, scalingFactor)
 	if err != nil {
 		return err
 	}
