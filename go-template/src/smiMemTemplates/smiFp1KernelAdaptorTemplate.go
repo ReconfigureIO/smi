@@ -46,31 +46,31 @@ var smiFp1KernelAdaptorTemplate = `
 module {{.ModuleName}} (
 
   // Action control signals.
-  input          go_0Ready,
-  output         go_0Stop,
-  output         done_0Ready,
-  input          done_0Stop,
+  input          go_ready,
+  output         go_stop,
+  output         done_ready,
+  input          done_stop,
 
-  // Specifies the AXI slave read bus signals.
-  input  [ 31:0] s_axi_araddr,
-  input          s_axi_arvalid,
-  output         s_axi_arready,
-  output [ 31:0] s_axi_rdata,
-  output [  1:0] s_axi_rresp,
-  output         s_axi_rvalid,
-  input          s_axi_rready,
+  // Configuration register file access signals.
+  output         config_req_valid,
+  output [ 31:0] config_req_data,
+  input          config_req_stop,
+  input          config_resp_valid,
+  input  [ 31:0] config_resp_data,
+  output         config_resp_stop,
 
-  // Specifies the AXI slave write bus signals.
-  input  [ 31:0] s_axi_awaddr,
-  input          s_axi_awvalid,
-  output         s_axi_awready,
-  input  [ 31:0] s_axi_wdata,
-  input  [  3:0] s_axi_wstrb,
-  input          s_axi_wvalid,
-  output         s_axi_wready,
-  output [  1:0] s_axi_bresp,
-  output         s_axi_bvalid,
-  input          s_axi_bready,
+  // Kernel internal register access signals.
+  input          control_req_valid,
+  input  [ 64:0] control_req_data,
+  output         control_req_stop,
+  output         control_resp_valid,
+  output [ 33:0] control_resp_data,
+  input          control_resp_stop,
+
+  // Kernel interrupt queue signals.
+  output         interrupt_valid,
+  output [ 31:0] interrupt_data,
+  input          interrupt_stop,
 
   // Specifies the AXI master write address signals.
   output [ 63:0] m_axi_gmem_awaddr,
@@ -110,14 +110,6 @@ module {{.ModuleName}} (
   input          m_axi_gmem_rvalid,
   output         m_axi_gmem_rready,
 
-  // Specifies the parameter register file data access signals.
-  output         paramaddr_0Ready,
-  output [ 31:0] paramaddr_0Data,
-  input          paramaddr_0Stop,
-  input          paramdata_0Ready,
-  input  [ 31:0] paramdata_0Data,
-  output         paramdata_0Stop,
-
   // Specify system level signals.
   input          clk,
   input          reset
@@ -128,11 +120,6 @@ wire [ 71:0] {{.SmiNetReqName}}Flit;
 wire [ 71:0] {{.SmiNetRespName}}Flit;{{end}}
 
 // Unused AXI interface signals.
-wire [  3:0] s_axi_arcache;
-wire [  2:0] s_axi_arprot;
-wire [  3:0] s_axi_awcache;
-wire [  2:0] s_axi_awprot;
-
 wire [  3:0] m_axi_gmem_arcache;
 wire [  3:0] m_axi_gmem_awcache;
 
@@ -195,14 +182,6 @@ smiAxiMemBusAdaptor #({{.AxiByteIndexSize}}, {{.AxiBusIdWidth}}, 33) axiBusAdapt
 );
 
 //
-// Tie off static AXI signals.
-//
-assign s_axi_arcache = 4'd0;
-assign s_axi_arprot = 3'd0;
-assign s_axi_awcache = 4'd0;
-assign s_axi_awprot = 3'd0;
-
-//
 // Instantiate the memory access arbitration logic.
 //
 {{.ArbitrationModuleName}} memArbitrationTree (
@@ -222,61 +201,49 @@ assign {{.SmiNetReqName}}Eofc  = {{.SmiNetReqName}}Flit [71:64];
 assign {{.SmiNetRespName}}Flit = { {{.SmiNetRespName}}Eofc, {{.SmiNetRespName}}Data };
 {{end}}
 //
-// Instantiate the SMI kernel logic.
+// Instantiate the SMI kernel logic. Uses positional signal assignment since
+// the Go kernel parameter names may vary.
 //
 {{.KernelModuleName}} smiKernel (
 
   // Connect action control signals.
-  .go_0Ready   (go_0Ready),
-  .go_0Stop    (go_0Stop),
-  .done_0Ready (done_0Ready),
-  .done_0Stop  (done_0Stop),
+  go_ready,
+  go_stop,
+  done_ready,
+  done_stop,
 
-  // Connect parameter register file access signals.
-  .paramaddr_0Ready (paramaddr_0Ready),
-  .paramaddr_0Data  (paramaddr_0Data),
-  .paramaddr_0Stop  (paramaddr_0Stop),
-  .paramdata_0Ready (paramdata_0Ready),
-  .paramdata_0Data  (paramdata_0Data),
-  .paramdata_0Stop  (paramdata_0Stop),
+  // Connect configuration register file access signals.
+  config_req_valid,
+  config_req_data,
+  config_req_stop,
+  config_resp_valid,
+  config_resp_data,
+  config_resp_stop,
 
+  // Kernel internal register access signals.
+  control_req_valid,
+  control_req_data,
+  control_req_stop,
+  control_resp_valid,
+  control_resp_data,
+  control_resp_stop,
+
+  // Kernel interrupt queue signals.
+  interrupt_valid,
+  interrupt_data,
+  interrupt_stop,
 {{range $index, $element := .SmiMemBusClientConns}}
   // Connect SMI for {{$element.SmiNetReqName}}/{{$element.SmiNetRespName}}.
-  {{printf ".smiport%dreq_0Ready" $index}}  ({{$element.SmiNetReqName}}Ready),
-  {{printf ".smiport%dreq_0Data" $index}}   ({{$element.SmiNetReqName}}Flit),
-  {{printf ".smiport%dreq_0Stop" $index}}   ({{$element.SmiNetReqName}}Stop),
-  {{printf ".smiport%dresp_0Ready" $index}} ({{$element.SmiNetRespName}}Ready),
-  {{printf ".smiport%dresp_0Data" $index}}  ({{$element.SmiNetRespName}}Flit),
-  {{printf ".smiport%dresp_0Stop" $index}}  ({{$element.SmiNetRespName}}Stop),
+  {{$element.SmiNetReqName}}Ready,
+  {{$element.SmiNetReqName}}Flit,
+  {{$element.SmiNetReqName}}Stop,
+  {{$element.SmiNetRespName}}Ready,
+  {{$element.SmiNetRespName}}Flit,
+  {{$element.SmiNetRespName}}Stop,
 {{end}}
-  // Connect AXI slave read bus signals.
-  .s_axi_araddr  (s_axi_araddr),
-  .s_axi_arcache (s_axi_arcache),
-  .s_axi_arprot  (s_axi_arprot),
-  .s_axi_arvalid (s_axi_arvalid),
-  .s_axi_arready (s_axi_arready),
-  .s_axi_rdata   (s_axi_rdata),
-  .s_axi_rresp   (s_axi_rresp),
-  .s_axi_rvalid  (s_axi_rvalid),
-  .s_axi_rready  (s_axi_rready),
-
-  // Connect AXI slave write bus signals.
-  .s_axi_awaddr  (s_axi_awaddr),
-  .s_axi_awcache (s_axi_awcache),
-  .s_axi_awprot  (s_axi_awprot),
-  .s_axi_awvalid (s_axi_awvalid),
-  .s_axi_awready (s_axi_awready),
-  .s_axi_wdata   (s_axi_wdata),
-  .s_axi_wstrb   (s_axi_wstrb),
-  .s_axi_wvalid  (s_axi_wvalid),
-  .s_axi_wready  (s_axi_wready),
-  .s_axi_bresp   (s_axi_bresp),
-  .s_axi_bvalid  (s_axi_bvalid),
-  .s_axi_bready  (s_axi_bready),
-
   // Connect system level signals.
-  .clk   (clk),
-  .reset (reset)
+  clk,
+  reset
 );
 
 endmodule
@@ -306,15 +273,14 @@ func getSmiFp1KernelAdaptorTemplate() *template.Template {
 // Generates an SMI SDaccel kernel adaptor configuration given the supplied
 // parameters.
 //
-func configureSmiFp1KernelAdaptor(moduleName string, numPorts uint,
-	scalingFactor uint) (smiFp1KernelAdaptorConfig, error) {
+func configureSmiFp1KernelAdaptor(moduleName string, kernelName string,
+	numPorts uint, scalingFactor uint) (smiFp1KernelAdaptorConfig, error) {
 
 	var smiFp1KernelAdaptor = smiFp1KernelAdaptorConfig{}
 	smiFp1KernelAdaptor.ModuleName = moduleName
+	smiFp1KernelAdaptor.KernelModuleName = kernelName
 	smiFp1KernelAdaptor.ArbitrationModuleName =
 		fmt.Sprintf("smiMemArbitrationTreeX%dS%d", numPorts, scalingFactor)
-	smiFp1KernelAdaptor.KernelModuleName =
-		fmt.Sprintf("teak__action__top__smi__x%d", numPorts)
 	smiFp1KernelAdaptor.AxiBusDataWidth = scalingFactor * 8
 	smiFp1KernelAdaptor.AxiBusIdWidth = 1
 
