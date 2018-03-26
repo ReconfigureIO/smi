@@ -83,6 +83,7 @@ var smiMemBusFileHeaderTemplate = `
 //
 
 //
+// Created {{makeFileTimestamp}}
 // Machine generated file - DO NOT EDIT
 //
 

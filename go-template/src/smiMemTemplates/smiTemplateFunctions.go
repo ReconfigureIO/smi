@@ -19,6 +19,7 @@ package smiMemTemplates
 import (
 	"fmt"
 	"text/template"
+	"time"
 )
 
 //
@@ -45,9 +46,18 @@ func makePortIdCharName(portNamePattern string, index int) string {
 }
 
 //
+// Creates a time and date string which can be used for timestamping generated
+// files.
+//
+func makeFileTimestamp() string {
+	return time.Now().Format(time.RFC1123)
+}
+
+//
 // Build the template function map.
 //
 var smiTemplateFunctions = template.FuncMap{
 	"makeBitSliceFromScaledWidth": makeBitSliceFromScaledWidth,
 	"makeBitSliceFromIndexSize":   makeBitSliceFromIndexSize,
-	"makePortIdCharName":          makePortIdCharName}
+	"makePortIdCharName":          makePortIdCharName,
+	"makeFileTimestamp":           makeFileTimestamp}
