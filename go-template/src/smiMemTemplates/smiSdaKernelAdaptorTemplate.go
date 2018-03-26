@@ -328,15 +328,14 @@ func getSmiSdaKernelAdaptorTemplate() *template.Template {
 // Generates an SMI SDaccel kernel adaptor configuration given the supplied
 // parameters.
 //
-func configureSmiSdaKernelAdaptor(moduleName string, numPorts uint,
-	scalingFactor uint) (smiSdaKernelAdaptorConfig, error) {
+func configureSmiSdaKernelAdaptor(moduleName string, kernelName string,
+	numPorts uint, scalingFactor uint) (smiSdaKernelAdaptorConfig, error) {
 
 	var smiSdaKernelAdaptor = smiSdaKernelAdaptorConfig{}
 	smiSdaKernelAdaptor.ModuleName = moduleName
+	smiSdaKernelAdaptor.KernelModuleName = kernelName
 	smiSdaKernelAdaptor.ArbitrationModuleName =
 		fmt.Sprintf("smiMemArbitrationTreeX%dS%d", numPorts, scalingFactor)
-	smiSdaKernelAdaptor.KernelModuleName =
-		fmt.Sprintf("teak__action__top__smi__x%d", numPorts)
 	smiSdaKernelAdaptor.AxiBusDataWidth = scalingFactor * 8
 	smiSdaKernelAdaptor.AxiBusIdWidth = 1
 
