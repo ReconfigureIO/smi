@@ -220,27 +220,26 @@ begin
   if (dataInValid_q)
   begin
 
+    // Evaluate current discard frame flag.
+    if ({1'b0, entryCount_q} == FifoSize [FifoIndexSize:0] - 1)
+    begin
+      discardFrame_d = 1'b1;
+    end
+
     // Implement normal data push if the frame isn't being discarded.
     if (~dataInEof_q)
     begin
-      if (~discardFrame_q)
+      if (~discardFrame_d)
       begin
-        if ({1'b0, entryCount_q} == FifoSize [FifoIndexSize:0] - 1)
-        begin
-          discardFrame_d = 1'b1;
-        end
-        else
-        begin
-          entryCount_d = entryCount_q + 1;
-          frameCount_d = frameCount_q + 1;
-          writeAddr_d = writeAddr_q + 1;
-          writePipeEn_d = 1'b1;
-        end
+        entryCount_d = entryCount_q + 1;
+        frameCount_d = frameCount_q + 1;
+        writeAddr_d = writeAddr_q + 1;
+        writePipeEn_d = 1'b1;
       end
     end
 
     // Process end of discarded frame.
-    else if (discardFrame_q | inputFrameInfoStop)
+    else if (discardFrame_d | inputFrameInfoStop)
     begin
       discardFrame_d = 1'b0;
       overflowFlag_d = 1'b1;
