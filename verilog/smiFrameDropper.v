@@ -22,18 +22,24 @@
 // overflow conditions. Note that in the event that a single frame exceeds the
 // FIFO length the frame will always be dropped. There is an additional status
 // output which indicates an overflow condition which will be asserted for the
-// entire duration of each frame that follows a previously dropped frame.
+// entire duration of each frame that follows a previously dropped frame. There
+// is also an out of band user status signal which may be used to transfer
+// frame status information.
 //
 
 `timescale 1ns/1ps
 
 module smiFrameDropper
-  (dataInValid, dataInEofc, dataIn, dataInStop, dataOutValid, dataOutEofc,
-  dataOut, dataOutStop, frameDropped, dropCountReset, dropCount, clk, srst);
+  (dataInValid, dataInEofc, dataIn, dataInStatus, dataInStop, dataOutValid,
+  dataOutEofc, dataOut, dataOutStatus, dataOutStop, frameDropped, dropCountReset,
+  dropCount, clk, srst);
 
 // Specifes the flit width of the data channel, expressed as an integer power
 // of two number of bytes.
 parameter FlitWidth = 8;
+
+// Specifies the frame status signal width.
+parameter StatusWidth = 4;
 
 // Specifies the link buffer FIFO size (maximum 65536).
 parameter FifoSize = 64;
@@ -61,12 +67,14 @@ parameter MaxFrameCountSize = (MaxFrameCount <= 2) ? 1 : (MaxFrameCount <= 4) ? 
 input                   dataInValid;
 input [7:0]             dataInEofc;
 input [FlitWidth*8-1:0] dataIn;
+input [StatusWidth-1:0] dataInStatus;
 output                  dataInStop;
 
 // Specifies the 'downstream' data output ports.
 output                   dataOutValid;
 output [7:0]             dataOutEofc;
 output [FlitWidth*8-1:0] dataOut;
+output [StatusWidth-1:0] dataOutStatus;
 input                    dataOutStop;
 
 // Dropped frame notification signals. the frame dropped signal indicates that
@@ -85,6 +93,7 @@ input srst;
 reg                   dataInValid_q;
 reg                   dataInEof_q;
 reg [7:0]             dataInEofc_q;
+reg [StatusWidth-1:0] dataInStatus_q;
 reg [FlitWidth*8-1:0] dataIn_q;
 
 // Specify the input state machine registers.
@@ -112,21 +121,23 @@ reg [FlitWidth*8-1:0]   writePipeData_q;
 // Specify the output state machine registers.
 reg                     outputActive_d;
 reg [FifoIndexSize-1:0] outputCount_d;
-reg [8:0]               outputFrameInfo_d;
+reg [StatusWidth+8:0]   outputFrameInfo_d;
 reg [FifoIndexSize-1:0] readAddr_d;
 reg                     readPipeValidP1_d;
 reg [FifoIndexSize-1:0] readPipeAddr_d;
 reg [7:0]               readPipeEofcP1_d;
 reg                     readPipeOverflowP1_d;
+reg [StatusWidth-1:0]   readPipeStatusP1_d;
 
 reg                     outputActive_q;
 reg [FifoIndexSize-1:0] outputCount_q;
-reg [8:0]               outputFrameInfo_q;
+reg [StatusWidth+8:0]   outputFrameInfo_q;
 reg [FifoIndexSize-1:0] readAddr_q;
 reg                     readPipeValidP1_q;
 reg [FifoIndexSize-1:0] readPipeAddr_q;
 reg [7:0]               readPipeEofcP1_q;
 reg                     readPipeOverflowP1_q;
+reg [StatusWidth-1:0]   readPipeStatusP1_q;
 
 // Intermediate FIFO signals.
 wire entryCountDecr;
@@ -137,6 +148,7 @@ wire outputFrameInfoStop;
 
 wire                     frameInfoOverflow;
 wire [7:0]               frameInfoEofc;
+wire [StatusWidth-1:0]   frameInfoStatus;
 wire [FifoIndexSize-1:0] frameInfoSize;
 
 // RAM array signals.
@@ -147,10 +159,12 @@ reg [FlitWidth*8-1:0] ramReadData_q;
 reg                   readPipeValidP2_q;
 reg [7:0]             readPipeEofcP2_q;
 reg                   readPipeOverflowP2_q;
+reg [StatusWidth-1:0] readPipeStatusP2_q;
 reg                   outputValid_q;
 reg [FlitWidth*8-1:0] outputData_q;
 reg [7:0]             outputEofc_q;
 reg                   outputOverflow_q;
+reg [StatusWidth-1:0] outputStatus_q;
 wire                  readPipeStop;
 
 // Miscellaneous signals.
@@ -176,6 +190,7 @@ always @(posedge clk)
 begin
   dataInEofc_q <= dataInEofc;
   dataIn_q <= dataIn;
+  dataInStatus_q <= dataInStatus;
 end
 
 // Note that the input never blocks because we discard frames instead of
@@ -297,16 +312,16 @@ begin
 end
 
 // Instantiate the frame information FIFO.
-smiSelfLinkBufferFifoS #(FifoIndexSize+9, MaxFrameCount, MaxFrameCountSize) frameInfoFifo
-  (inputFrameInfoPush, {overflowFlag_q, dataInEofc_q, frameCount_q}, inputFrameInfoStop,
-  outputFrameInfoValid, {frameInfoOverflow, frameInfoEofc, frameInfoSize},
-  outputFrameInfoStop, clk, srst);
+smiSelfLinkBufferFifoS #(FifoIndexSize+StatusWidth+9, MaxFrameCount, MaxFrameCountSize) frameInfoFifo
+  (inputFrameInfoPush, {overflowFlag_q, dataInEofc_q, dataInStatus_q, frameCount_q},
+  inputFrameInfoStop, outputFrameInfoValid, {frameInfoOverflow, frameInfoEofc,
+  frameInfoStatus, frameInfoSize}, outputFrameInfoStop, clk, srst);
 
 // Implement combinatorial logic for output frame processing state machine.
 always @(outputActive_q, outputCount_q, outputFrameInfo_q, readAddr_q,
   readPipeValidP1_q, readPipeAddr_q, readPipeEofcP1_q, readPipeOverflowP1_q,
-  outputFrameInfoValid, frameInfoOverflow, frameInfoEofc, frameInfoSize,
-  readPipeStop, zeros)
+  readPipeStatusP1_q, outputFrameInfoValid, frameInfoOverflow, frameInfoEofc,
+  frameInfoStatus, frameInfoSize, readPipeStop, zeros)
 begin
 
   // Hold current state by default.
@@ -318,6 +333,7 @@ begin
   readPipeAddr_d = readPipeAddr_q;
   readPipeEofcP1_d = readPipeEofcP1_q;
   readPipeOverflowP1_d = readPipeOverflowP1_q;
+  readPipeStatusP1_d = readPipeStatusP1_q;
 
   // Wait for a new frame to become available.
   if (~outputActive_q)
@@ -327,7 +343,7 @@ begin
     begin
       outputActive_d = 1'b1;
       outputCount_d = frameInfoSize;
-      outputFrameInfo_d = {frameInfoOverflow, frameInfoEofc};
+      outputFrameInfo_d = {frameInfoStatus, frameInfoOverflow, frameInfoEofc};
     end
   end
 
@@ -339,6 +355,7 @@ begin
     readPipeValidP1_d = 1'b1;
     readPipeAddr_d = readAddr_q;
     readPipeOverflowP1_d = outputFrameInfo_q [8];
+    readPipeStatusP1_d = outputFrameInfo_q [StatusWidth+8:9];
 
     // Terminate on end of frame.
     if (outputCount_q == zeros [FifoIndexSize-1:0])
@@ -364,6 +381,7 @@ begin
     readAddr_q <= zeros [FifoIndexSize-1:0];
     readPipeValidP1_q <= 1'b0;
     readPipeOverflowP1_q <= 1'b0;
+    readPipeStatusP1_q <= zeros [StatusWidth-1:0];
   end
   else if (~readPipeStop)
   begin
@@ -371,6 +389,7 @@ begin
     readAddr_q <= readAddr_d;
     readPipeValidP1_q <= readPipeValidP1_d;
     readPipeOverflowP1_q <= readPipeOverflowP1_d;
+    readPipeStatusP1_q <= readPipeStatusP1_d;
   end
 end
 
@@ -405,16 +424,12 @@ begin
   if (srst)
   begin
     readPipeValidP2_q <= 1'b0;
-    readPipeOverflowP2_q <= 1'b0;
     outputValid_q <= 1'b0;
-    outputOverflow_q <= 1'b0;
   end
   else if (~readPipeStop)
   begin
     readPipeValidP2_q <= readPipeValidP1_q;
-    readPipeOverflowP2_q <= readPipeOverflowP1_q;
     outputValid_q <= readPipeValidP2_q;
-    outputOverflow_q <= readPipeOverflowP2_q;
   end
 end
 
@@ -425,8 +440,12 @@ begin
   if (~readPipeStop)
   begin
     readPipeEofcP2_q <= readPipeEofcP1_q;
+    readPipeOverflowP2_q <= readPipeOverflowP1_q;
+    readPipeStatusP2_q <= readPipeStatusP1_q;
     outputData_q <= ramReadData_q;
     outputEofc_q <= readPipeEofcP2_q;
+    outputOverflow_q <= readPipeOverflowP2_q;
+    outputStatus_q <= readPipeStatusP2_q;
   end
 end
 
@@ -434,6 +453,7 @@ assign readPipeStop = dataOutStop & outputValid_q;
 assign dataOutValid = outputValid_q;
 assign dataOutEofc = outputEofc_q;
 assign dataOut = outputData_q;
+assign dataOutStatus = outputStatus_q;
 assign frameDropped = outputOverflow_q;
 assign dropCount = dropCount_q;
 
