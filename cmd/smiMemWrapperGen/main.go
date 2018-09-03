@@ -31,8 +31,12 @@ func main() {
 		"the number of SMI memory ports")
 	axiBusWidthPtr := flag.Uint("axiBusWidth", 64,
 		"the width of the AXI data bus (64, 128, 256 or 512)")
+	axiBusIdWidthPtr := flag.Uint("axiBusIdWidth", 1,
+		"the width of the AXI ID bus")
+	kernelArgsWidthPtr := flag.Uint("kernelArgsWidth", 1,
+		"the number of 32-bit kernel argument words")
 	targetPlatformPtr := flag.String("targetPlatform", "sdaccel",
-		"the target platform ('sdaccel' or 'huawei-fp1')")
+		"the target platform ('sdaccel', 'llvm' or 'huawei-fp1')")
 	flag.Parse()
 
 	// Convert the AXI bus width the bus width scaling factor.
@@ -68,6 +72,13 @@ func main() {
 		fileName = fmt.Sprintf("%s.v", moduleName)
 		err = smiMemTemplates.CreateSmiSdaKernelAdaptor(
 			fileName, moduleName, kernelName, *numMemPortsPtr, scalingFactor)
+	case "llvm":
+		kernelName := "teak___x24_main_x2e_Top_x3a_public"
+		moduleName := "llvm_kernel_smi_adaptor"
+		fileName = fmt.Sprintf("%s.v", moduleName)
+		err = smiMemTemplates.CreateSmiLlvmKernelAdaptor(
+			fileName, moduleName, kernelName, *numMemPortsPtr,
+			scalingFactor, *axiBusIdWidthPtr, *kernelArgsWidthPtr)
 	case "huawei-fp1":
 		kernelName := "teak__main_x2e_Top"
 		moduleName = "fp1_teak_action_top_gmem"

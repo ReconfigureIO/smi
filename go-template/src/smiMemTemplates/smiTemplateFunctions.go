@@ -46,6 +46,14 @@ func makePortIdCharName(portNamePattern string, index int) string {
 }
 
 //
+// Creates a port identifier name where ports are distinguished using modified
+// integer index values of the form 'a + bi'.
+//
+func makePortIdIndexName(portNamePattern string, index int, a int, b int) string {
+	return fmt.Sprintf(portNamePattern, a+b*index)
+}
+
+//
 // Creates a time and date string which can be used for timestamping generated
 // files.
 //
@@ -60,4 +68,5 @@ var smiTemplateFunctions = template.FuncMap{
 	"makeBitSliceFromScaledWidth": makeBitSliceFromScaledWidth,
 	"makeBitSliceFromIndexSize":   makeBitSliceFromIndexSize,
 	"makePortIdCharName":          makePortIdCharName,
+	"makePortIdIndexName":         makePortIdIndexName,
 	"makeFileTimestamp":           makeFileTimestamp}
